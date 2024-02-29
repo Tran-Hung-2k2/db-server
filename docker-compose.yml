@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth
+      - users
+    networks:
+      - main
+
+  auth:
+    build:
+      context: .
+      dockerfile: go_services/cmd/auth/Dockerfile
+    ports:
+      - "10080:8080"
+      - "50051:50051"
+    depends_on:
+      - postgres
+    volumes:
+      - /root/db-server:/usr/src/app/
+    env_file:
+      - go_services/.env
+    networks:
+      - main
+
+  users:
+    build:
+      context: .
+      dockerfile: go_services/cmd/users/Dockerfile
+    ports:
+      - "10081:8080"
+      - "50052:50051"
+    depends_on:
+      - postgres
+    volumes:
+      - /root/db-server:/usr/src/app/
+    env_file:
+      - go_services/.env
+    networks:
+      - main
+
+  postgres:
+    image: postgres:latest
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - PGDATA=/var/lib/postgresql/pgdata
+    volumes:
+      - postgres:/var/lib/postgresql/pgdata
+      - ./db:/docker-entrypoint-initdb.d/
+    env_file:
+      - go_services/.env
+    ports:
+      - "5432:5432"
+    networks:
+      - main
+    restart: unless-stopped
+
+volumes:
+  postgres:
+
+
+networks:
+  main:
+    name: main
+    driver: bridge

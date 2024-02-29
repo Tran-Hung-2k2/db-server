@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./pb";
+
+service AuthService {
+    rpc VerifyRole(VerifyRequest) returns (VerifyResponse) {};
+}
+
+message VerifyRequest {
+    string token = 1;
+    repeated string roles = 2;
+}
+
+message VerifyResponse {
+    map<string, string> data = 2;
+}
