@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Multiple Form Submission</title>
+	</head>
+	<body>
+		<h2>File Upload</h2>
+		<form id="uploadForm" enctype="multipart/form-data">
+			<input type="file" name="file" id="fileInput" />
+			<input
+				type="text"
+				name="user_id"
+				id="userIdInput"
+				placeholder="Enter User ID"
+			/>
+			<button type="button" onclick="uploadFile()">Upload File</button>
+		</form>
+
+		<h2>Send SQL Command</h2>
+		<form id="sqlForm">
+			<textarea
+				name="sql_command"
+				id="sqlCommandInput"
+				placeholder="Enter SQL Command"
+			></textarea>
+			<input
+				type="text"
+				name="user_id"
+				id="sqlUserIdInput"
+				placeholder="Enter User ID"
+			/>
+			<button type="button" onclick="sendSQLCommand()">Send SQL Command</button>
+		</form>
+
+		<script>
+			function uploadFile() {
+				var input = document.getElementById('fileInput');
+				var file = input.files[0];
+
+				if (!file) {
+					alert('Please choose a file to upload');
+					return;
+				}
+
+				var userIdInput = document.getElementById('userIdInput');
+				var userId = userIdInput.value.trim();
+
+				if (userId === '') {
+					alert('Please enter the user ID');
+					return;
+				}
+
+				var formData = new FormData();
+				formData.append('file', file);
+				formData.append('user_id', userId);
+
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', 'http://localhost:7879/upload', true);
+
+				xhr.onload = function () {
+					if (xhr.status === 200) {
+						var response = JSON.parse(xhr.responseText);
+						console.log(response);
+						alert('File uploaded successfully');
+					} else {
+						console.error('Error uploading file:', xhr.statusText);
+						alert('Error uploading file');
+					}
+				};
+
+				xhr.onerror = function () {
+					console.error('Network error');
+					alert('Network error');
+				};
+
+				xhr.send(formData);
+			}
+
+			function sendSQLCommand() {
+				var sqlCommandInput = document
+					.getElementById('sqlCommandInput')
+					.value.trim();
+				var sqlUserIdInput = document
+					.getElementById('sqlUserIdInput')
+					.value.trim();
+
+				if (sqlCommandInput === '' || sqlUserIdInput === '') {
+					alert('Please enter SQL command and user ID');
+					return;
+				}
+
+				var sqlData = {
+					sql_command: sqlCommandInput,
+					user_id: sqlUserIdInput,
+				};
+
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', 'http://localhost:7879/query', true);
+				xhr.setRequestHeader('Content-Type', 'application/json');
+
+				xhr.onload = function () {
+					if (xhr.status === 200) {
+						var response = JSON.parse(xhr.responseText);
+						console.log(response);
+						alert('SQL command sent successfully');
+					} else {
+						console.error('Error sending SQL command:', xhr.statusText);
+						alert('Error sending SQL command');
+					}
+				};
+
+				xhr.onerror = function () {
+					console.error('Network error');
+					alert('Network error');
+				};
+
+				xhr.send(JSON.stringify(sqlData));
+			}
+		</script>
+	</body>
+</html>
