@@ -1,20 +1,16 @@
+import uvicorn
 from fastapi import FastAPI
-from app.api.movies import movies
-from app.api.db import metadata, database, engine
 
-metadata.create_all(engine)
+from services_python.data_service.app.api.v1 import router
+from services_python.data_service.app.database import engine
+from services_python.data_service.app.models.datasources import Base
+
+# migrate all
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Include the user router
+app.include_router(router)
 
-@app.on_event("startup")
-async def startup():
-    await database.connect()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
-
-
-app.include_router(movies)
+uvicorn.run(app, host="127.0.0.1", port=8080)

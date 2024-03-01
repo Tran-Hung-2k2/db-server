@@ -44,13 +44,14 @@ nginx:
 	docker-compose restart nginx
 
 data:
-	uvicorn python_services.data_service.app.main:app --reload
+	uvicorn services_python.data_service.app.main:app --reload
+	uvicorn main:app --reload
 
 import_req:
-	pip install -r python_services/data_service/requirements.txt
+	pip install -r services_python/data_service/requirements.txt
 
 export_req:
-	pip freeze > python_services/data_service/requirements.txt
+	pip freeze > services_python/data_service/requirements.txt
 
 .PHONY: all proto clean
 
