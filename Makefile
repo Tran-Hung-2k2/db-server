@@ -44,8 +44,7 @@ nginx:
 	docker-compose restart nginx
 
 data:
-	uvicorn services_python.data_service.app.main:app --reload
-	uvicorn main:app --reload
+	python services_python/data_service/app/main.py
 
 import_req:
 	pip install -r services_python/data_service/requirements.txt

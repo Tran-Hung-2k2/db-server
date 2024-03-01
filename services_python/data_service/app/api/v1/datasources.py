@@ -8,7 +8,7 @@ router = APIRouter(prefix="/datasources", tags=["Datasources"])
 
 
 @router.get("/{user_id}", response_model=User)
-async def read_user(user_id: int, db: Session = Depends(get_session)):
+async def read_user(db: Session = Depends(get_session)):
     return ""
 
 
