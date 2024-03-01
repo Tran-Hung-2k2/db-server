@@ -1,1 +1,3 @@
 nginx_local
+env
+__pycache__

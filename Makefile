@@ -1,6 +1,6 @@
 # Variables
 PROTO_DIR := ./proto
-PB_DIR := ./pb
+PB_DIR := ./services_go/pb
 
 # Commands
 PROTOC := protoc
@@ -26,28 +26,31 @@ clean:
 	rm -rf $(PB_DIR)/*
 
 auth: 
-	go run cmd/auth/main.go
+	go run services_go/cmd/auth/main.go
 
 users: 
-	go run cmd/users/main.go
-
-datasources: 
-	go run cmd/datasources/main.go
+	go run services_go/cmd/users/main.go
 
 swagger:
-	swag init -g ./cmd/users/main.go -o docs
-
-build:
-	docker-compose build --parallel
+	swag init -g ./services_go/cmd/users/main.go -o services_go/docs
 
 docker:
 	docker-compose up -d
 
-rebuild:
+build:
 	docker-compose up -d --build
 
 nginx:
 	docker-compose restart nginx
+
+data:
+	uvicorn python_services.data_service.app.main:app --reload
+
+import_req:
+	pip install -r python_services/data_service/requirements.txt
+
+export_req:
+	pip freeze > python_services/data_service/requirements.txt
 
 .PHONY: all proto clean
 
