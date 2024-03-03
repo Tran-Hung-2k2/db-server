@@ -1,35 +1,80 @@
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
+
+from services_python.data_service.app.models import Datasource
+import services_python.data_service.app.schemas as schemas
 
 
-def get_user(db: Session, user_id: int):
-    return db.query(User).filter(User.id == user_id).first()
+def get_datasets(db: Session, skip: int, limit: int):
+    datasources = db.query(Datasource).offset(skip).limit(limit).all()
+    return JSONResponse(
+        content={
+            "detail": "Lấy danh sách datasource thành công.",
+            "data": [datasource.to_dict() for datasource in datasources],
+        },
+        status_code=200,
+    )
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(User).offset(skip).limit(limit).all()
-
-
-def create_user(db: Session, user: UserCreate):
-    db_user = User(**user.dict())
-    db.add(db_user)
+def create_dataset(db: Session, data: schemas.DatasourceCreate):
+    new_dataset = Datasource(**data.dict())
+    db.add(new_dataset)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(new_dataset)
+
+    return JSONResponse(
+        content={
+            "detail": "Tạo datasource thành công.",
+            "data": new_dataset.to_dict(),
+        },
+        status_code=201,
+    )
 
 
-def update_user(db: Session, user_id: int, user: UserCreate):
-    db_user = db.query(User).filter(User.id == user_id).first()
-    if db_user:
-        for key, value in user.dict().items():
-            setattr(db_user, key, value)
-        db.commit()
-        db.refresh(db_user)
-    return db_user
+def update_dataset(
+    db: Session, datasource_id: int, updated_data: schemas.DatasourceUpdate
+):
+    # Kiểm tra xem datasource tồn tại hay không
+    existing_dataset = (
+        db.query(Datasource).filter(Datasource.id == datasource_id).first()
+    )
+    if not existing_dataset:
+        raise HTTPException(status_code=404, detail="Không tìm thấy datasource.")
+
+    # Chuyển đổi Pydantic model thành từ điển để lặp qua các cặp khóa-giá trị
+    updated_data_dict = updated_data.dict()
+
+    # Cập nhật dữ liệu của datasource
+    for key, value in updated_data_dict.items():
+        setattr(existing_dataset, key, value)
+
+    # Lưu thay đổi vào cơ sở dữ liệu
+    db.commit()
+    db.refresh(existing_dataset)
+
+    return JSONResponse(
+        content={
+            "detail": "Tạo datasource thành công.",
+            "data": existing_dataset.to_dict(),
+        },
+        status_code=200,
+    )
 
 
-def delete_user(db: Session, user_id: int):
-    db_user = db.query(User).filter(User.id == user_id).first()
-    if db_user:
-        db.delete(db_user)
-        db.commit()
-    return db_user
+def delete_dataset(db: Session, datasource_id: int):
+    # Kiểm tra xem datasource tồn tại hay không
+    existing_dataset = (
+        db.query(Datasource).filter(Datasource.id == datasource_id).first()
+    )
+    if not existing_dataset:
+        raise HTTPException(status_code=404, detail="Không tìm thấy datasource.")
+
+    # Xóa datasource
+    db.delete(existing_dataset)
+    db.commit()
+
+    return JSONResponse(
+        content={"detail": "Xóa datasource thành công."},
+        status_code=200,
+    )

@@ -11,7 +11,19 @@ import sqlalchemy as db
 class Base(declarative_base()):
     __abstract__ = True
     created_at = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    updated_at = db.Column(
+        db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now()
+    )
+
+    def to_dict(self):
+        return {
+            col.name: (
+                str(getattr(self, col.name))
+                if isinstance(col.type, (UUID, db.DateTime))
+                else getattr(self, col.name)
+            )
+            for col in self.__table__.columns
+        }
 
 
 class Datasource(Base):
@@ -23,7 +35,7 @@ class Datasource(Base):
         server_default=db.text("uuid_generate_v4()"),
     )
     user_id = db.Column(
-        UUID(as_uuid=True), server_default=db.text("uuid_generate_v4()")
+        UUID(as_uuid=True), nullable=False, server_default=db.text("uuid_generate_v4()")
     )
     name = db.Column(db.String, nullable=False)
     type = db.Column(db.String, nullable=False)

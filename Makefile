@@ -1,56 +1,50 @@
 # Variables
 PROTO_DIR := ./proto
-PB_DIR := ./services_go/pb
-
-# Commands
-PROTOC := protoc
-GO_OUT := --go_out=$(PB_DIR) --go_opt=paths=source_relative
-GO_GRPC_OUT := --go-grpc_out=$(PB_DIR) --go-grpc_opt=paths=source_relative
+GO_PB_DIR := ./services_go/pb
+PYTHON_PB_DIR := ./services_python/pb
 
 # Find all .proto files in the PROTO_DIR
 PROTO_FILES := $(wildcard $(PROTO_DIR)/*.proto)
 
 # Default target
-all: clean proto
+all: proto
 
-# Generate Go files from .proto files
-proto: $(PB_DIR) $(PROTO_FILES)
-	$(PROTOC) $(GO_OUT) $(GO_GRPC_OUT) -I$(PROTO_DIR) $(PROTO_FILES)
+# Generate Go and Py files from .proto files
+proto: $(GO_PB_DIR) $(PYTHON_PB_DIR) $(PROTO_FILES)
+	rm -rf $(GO_PB_DIR)/*
+	rm -rf $(PYTHON_PB_DIR)/*
+	protoc --go_out=$(GO_PB_DIR) --go_opt=paths=source_relative --go-grpc_out=$(GO_PB_DIR) --go-grpc_opt=paths=source_relative -I $(PROTO_DIR) $(PROTO_FILES)
+	python -m grpc_tools.protoc  --python_out=$(PYTHON_PB_DIR) --grpc_python_out=$(PYTHON_PB_DIR) -I $(PROTO_DIR) $(PROTO_FILES)
 
 # Create PB_DIR if it doesn't exist
-$(PB_DIR):
-	mkdir -p $(PB_DIR)
+$(GO_PB_DIR):
+	mkdir -p $(GO_PB_DIR)
 
-# Clean up generated files
-clean:
-	rm -rf $(PB_DIR)/*
+$(PYTHON_PB_DIR):
+	mkdir -p $(PYTHON_PB_DIR)
 
-auth: 
-	go run services_go/cmd/auth/main.go
-
-users: 
-	go run services_go/cmd/users/main.go
-
+# Golang swagger
 swagger:
 	swag init -g ./services_go/cmd/users/main.go -o services_go/docs
 
-docker:
-	docker-compose up -d
-
-build:
+# Buil docker compose
+docker-compose:
 	docker-compose up -d --build
 
-nginx:
-	docker-compose restart nginx
-
-data:
-	python services_python/data_service/app/main.py
-
-import_req:
+# Python requirement
+imreq:
 	pip install -r services_python/data_service/requirements.txt
 
-export_req:
+exreq:
 	pip freeze > services_python/data_service/requirements.txt
 
-.PHONY: all proto clean
+# Run Service
+datasrv:
+	python services_python/data_service/app/main.py
+
+authsrv: 
+	cd services_go && go run cmd/auth/main.go
+
+userssrv: 
+	cd services_go && go run cmd/users/main.go
 

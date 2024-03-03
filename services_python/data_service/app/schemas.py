@@ -1,15 +1,19 @@
-from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, UUID4, constr
+from typing import Optional, Literal
 
-class UserBase(BaseModel):
+
+class DatasourceCreate(BaseModel):
+    user_id: UUID4
     name: str
-    age: int
+    type: Literal["kafka", "postgres"]
+    host: str
+    port: constr(strip_whitespace=True, pattern=r"^[1-9]\d*$")
+    other: Optional[dict] = None
 
-class UserCreate(UserBase):
-    pass
 
-class User(UserBase):
-    id: int
-
-    class Config:
-        orm_mode = True
+class DatasourceUpdate(BaseModel):
+    name: str
+    type: Literal["kafka", "postgres"]
+    host: str
+    port: constr(strip_whitespace=True, pattern=r"^[1-9]\d*$")
+    other: Optional[dict] = None

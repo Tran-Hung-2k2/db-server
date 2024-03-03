@@ -1,30 +1,34 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+import os
+from pydantic import UUID4
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from services_python.data_service.app.schemas import User, UserCreate
 from services_python.data_service.app.database import get_session
+import services_python.data_service.app.controllers.datasets as ctl
+import services_python.data_service.app.schemas as schemas
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
 
-@router.get("/{user_id}", response_model=User)
-async def read_user(user_id: int, db: Session = Depends(get_session)):
-    return ""
+@router.get("/")
+async def get_datasets(db: Session = Depends(get_session)):
+    return ctl.get_datasets(db)
 
 
-@router.post("/", response_model=User)
-async def create_user(user: UserCreate, db: Session = Depends(get_session)):
-    return ""
-
-
-@router.put("/{user_id}", response_model=User)
-async def update_user(
-    user_id: int, user: UserCreate, db: Session = Depends(get_session)
+@router.post("/")
+async def create_dataset(
+    data: schemas.DatasourceCreate, db: Session = Depends(get_session)
 ):
-    return ""
+    return ctl.create_dataset(db, data)
 
 
-@router.delete("/{user_id}", response_model=User)
-async def delete_user(user_id: int, db: Session = Depends(get_session)):
-    return ""
+@router.put("/{id}")
+async def update_dataset(
+    id: UUID4, data: schemas.DatasourceUpdate, db: Session = Depends(get_session)
+):
+    return ctl.update_dataset(db, id, data)
+
+
+@router.delete("/{id}")
+async def delete_dataset(id: UUID4, db: Session = Depends(get_session)):
+    return ctl.delete_dataset(db, id)
