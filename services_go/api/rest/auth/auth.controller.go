@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"db-server/constants"
 	"db-server/db"
 	"db-server/models"
 	"db-server/utils"
@@ -17,7 +18,7 @@ func SignUp(ctx *gin.Context) {
 		return
 	}
 
-	user.Role = "user"
+	user.Role = constants.Role["USER"]
 
 	result := db.DB.Create(&user)
 	if result.Error != nil {
@@ -52,7 +53,7 @@ func SignIn(ctx *gin.Context) {
 		// Đặt access token vào cookie
 		ctx.SetCookie("access_token", token, 0, "/", "", false, true)
 
-		ctx.JSON(http.StatusOK, gin.H{"message": "Đăng nhập thành công."})
+		ctx.JSON(http.StatusOK, gin.H{"message": "Đăng nhập thành công.", "data": user})
 	} else {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Tài khoản hoặc mật khẩu không chính xác."})
 	}

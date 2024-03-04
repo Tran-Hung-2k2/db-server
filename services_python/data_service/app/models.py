@@ -34,9 +34,7 @@ class Datasource(Base):
         primary_key=True,
         server_default=db.text("uuid_generate_v4()"),
     )
-    user_id = db.Column(
-        UUID(as_uuid=True), nullable=False, server_default=db.text("uuid_generate_v4()")
-    )
+    user_id = db.Column(UUID(as_uuid=True), nullable=False)
     name = db.Column(db.String, nullable=False)
     type = db.Column(db.String, nullable=False)
     host = db.Column(db.String, nullable=False)
@@ -58,7 +56,6 @@ class Dataset(Base):
         UUID(as_uuid=True),
         db.ForeignKey("datasources.id"),
         nullable=False,
-        server_default=db.text("uuid_generate_v4()"),
     )
     name = db.Column(db.String, nullable=False)
     other = db.Column(db.JSON)
@@ -80,7 +77,6 @@ class DatasetVersion(Base):
         UUID(as_uuid=True),
         db.ForeignKey("datasets.id"),
         nullable=False,
-        server_default=db.text("uuid_generate_v4()"),
     )
     name = db.Column(db.String, nullable=False)
     schema = db.Column(db.JSON)

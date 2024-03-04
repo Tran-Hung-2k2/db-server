@@ -36,7 +36,15 @@ async def verify_role(request: Request, required_roles: list[str]):
                     detail="Có lỗi xảy ra, vui lòng thử lại sau.",
                 )
 
-    return 1
+        # Lấy thông tin từ verify_response
+        id = verify_response.data.get("id")
+        role = verify_response.data.get("role")
+
+        # Gắn thông tin vào request
+        request.state.id = id
+        request.state.role = role
+
+    return True
 
 
 async def verify_admin(request: Request):

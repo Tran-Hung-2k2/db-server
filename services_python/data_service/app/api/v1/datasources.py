@@ -10,28 +10,33 @@ import services_python.middlewares.auth as middlewares
 router = APIRouter(prefix="/datasources", tags=["Datasources"])
 
 
-@router.get("/", dependencies=[Depends(middlewares.verify_admin)])
+@router.get("/", dependencies=[Depends(middlewares.verify_all)])
 async def get_datasources(
     request: Request,
     db: Session = Depends(get_session),
 ):
-    return ctl.get_datasources(db, **dict(request.query_params))
+    return ctl.get_datasources(db, request)
 
 
-@router.post("/")
+@router.post("/", dependencies=[Depends(middlewares.verify_user)])
 async def create_datasource(
-    data: schemas.DatasourceCreate, db: Session = Depends(get_session)
+    request: Request, data: schemas.DatasourceCreate, db: Session = Depends(get_session)
 ):
-    return ctl.create_datasource(db, data)
+    return ctl.create_datasource(db, data, request)
 
 
-@router.put("/{id}")
+@router.put("/{id}", dependencies=[Depends(middlewares.verify_user)])
 async def update_datasource(
-    id: UUID4, data: schemas.DatasourceUpdate, db: Session = Depends(get_session)
+    request: Request,
+    id: UUID4,
+    data: schemas.DatasourceUpdate,
+    db: Session = Depends(get_session),
 ):
-    return ctl.update_datasource(db, id, data)
+    return ctl.update_datasource(db, id, data, request)
 
 
-@router.delete("/{id}")
-async def delete_datasource(id: UUID4, db: Session = Depends(get_session)):
-    return ctl.delete_datasource(db, id)
+@router.delete("/{id}", dependencies=[Depends(middlewares.verify_user)])
+async def delete_datasource(
+    request: Request, id: UUID4, db: Session = Depends(get_session)
+):
+    return ctl.delete_datasource(db, id, request)

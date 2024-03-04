@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from services_python.data_service.app.api.v1 import router
 from services_python.data_service.app.database import engine
 from services_python.data_service.app.models import Base
-from services_python.data_service.app.exception import MyException, my_exception_handler
+from services_python.utils.exception import MyException, my_exception_handler
 
 
 Base.metadata.create_all(bind=engine)

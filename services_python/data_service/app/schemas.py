@@ -3,11 +3,11 @@ from typing import Optional, Literal
 
 
 class DatasourceCreate(BaseModel):
-    user_id: UUID4
     name: str
     type: Literal["kafka", "postgres"]
     host: str
     port: constr(strip_whitespace=True, pattern=r"^[1-9]\d*$")
+    user_id: Optional[UUID4] = None
     other: Optional[dict] = None
 
 
