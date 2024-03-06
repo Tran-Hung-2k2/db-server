@@ -55,7 +55,6 @@ class Dataset(Base):
     datasource_id = db.Column(
         UUID(as_uuid=True),
         db.ForeignKey("datasources.id"),
-        nullable=False,
     )
     name = db.Column(db.String, nullable=False)
     other = db.Column(db.JSON)
