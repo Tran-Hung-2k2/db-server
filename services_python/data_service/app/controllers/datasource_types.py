@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from fastapi import status, Request
 from fastapi.responses import JSONResponse
 
-from services_python.data_service.app.models import Datasource
-import services_python.data_service.app.schemas.datasources as schemas
+from services_python.data_service.app.models import DatasourceType
+import services_python.data_service.app.schemas.datasource_types as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
@@ -13,12 +13,9 @@ LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
 
 @handle_database_errors
-def get_datasources(db: Session, request: Request):
-    ALLOWED_FILTER_FIELDS = {"id", "user_id", "type_id"}
+def get_datasource_types(db: Session, request: Request):
+    ALLOWED_FILTER_FIELDS = {"id"}
     query_params = dict(request.query_params)
-
-    if request.state.role != label.role["ADMIN"]:
-        query_params["user_id"] = request.state.id
 
     # Lấy giá trị skip và limit từ query_params
     skip = int(query_params.get("skip", 0))
@@ -27,17 +24,17 @@ def get_datasources(db: Session, request: Request):
     # Giới hạn giá trị limit trong khoảng từ 0 đến 200
     limit = min(max(int(limit), 0), 200)
 
-    query = db.query(Datasource)
+    query = db.query(DatasourceType)
     for field, value in query_params.items():
         if field in ALLOWED_FILTER_FIELDS and value is not None:
             # Lọc theo trường và giá trị tương ứng
-            query = query.filter(getattr(Datasource, field) == value)
+            query = query.filter(getattr(DatasourceType, field) == value)
 
     records = query.offset(skip).limit(limit).all()
 
     return JSONResponse(
         content={
-            "detail": "Lấy danh sách datasource thành công.",
+            "detail": "Lấy danh sách datasource type thành công.",
             "skip": skip,
             "limit": limit,
             "total": query.count(),
@@ -48,16 +45,24 @@ def get_datasources(db: Session, request: Request):
 
 
 @handle_database_errors
-def create_datasource(db: Session, data: schemas.DatasourceCreate, request: Request):
-    data.user_id = request.state.id
-    new_record = Datasource(**data.dict())
+def create_datasource_type(db: Session, data: schemas.DatasourceTypeCreate):
+    # Kiểm tra xem record tồn tại hay không
+    exist_record = (
+        db.query(DatasourceType).filter(DatasourceType.name == data.name).first()
+    )
+    if exist_record:
+        raise MyException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Datasource type với tên này đã tồn tại.",
+        )
+    new_record = DatasourceType(**data.dict())
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
 
     return JSONResponse(
         content={
-            "detail": "Tạo datasource thành công.",
+            "detail": "Tạo datasource type thành công.",
             "data": new_record.to_dict(),
         },
         status_code=status.HTTP_201_CREATED,
@@ -65,27 +70,21 @@ def create_datasource(db: Session, data: schemas.DatasourceCreate, request: Requ
 
 
 @handle_database_errors
-def update_datasource(
-    db: Session, id: int, updated_data: schemas.DatasourceUpdate, request: Request
+def update_datasource_type(
+    db: Session, id: int, updated_data: schemas.DatasourceTypeUpdate
 ):
-    # Kiểm tra xem datasource tồn tại hay không
-    exist_record = db.query(Datasource).filter(Datasource.id == id).first()
+    # Kiểm tra xem record tồn tại hay không
+    exist_record = db.query(DatasourceType).filter(DatasourceType.id == id).first()
     if not exist_record:
         raise MyException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
-        )
-
-    # Kiểm tra người sở hữu của bản ghi
-    if str(exist_record.user_id) != str(request.state.id):
-        raise MyException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bạn không có quyền truy cập vào tài nguyên này.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy datasource type.",
         )
 
     # Chuyển đổi Pydantic model thành từ điển để lặp qua các cặp khóa-giá trị
     updated_data_dict = updated_data.dict()
 
-    # Cập nhật dữ liệu của datasource
+    # Cập nhật dữ liệu
     for key, value in updated_data_dict.items():
         setattr(exist_record, key, value)
 
@@ -95,7 +94,7 @@ def update_datasource(
 
     return JSONResponse(
         content={
-            "detail": "Cập nhật datasource thành công.",
+            "detail": "Cập nhật datasource type thành công.",
             "data": exist_record.to_dict(),
         },
         status_code=status.HTTP_200_OK,
@@ -103,26 +102,18 @@ def update_datasource(
 
 
 @handle_database_errors
-def delete_datasource(db: Session, datasource_id: int, request: Request):
-    # Kiểm tra xem datasource tồn tại hay không
-    exist_record = db.query(Datasource).filter(Datasource.id == datasource_id).first()
+def delete_datasource_type(db: Session, id: int):
+    exist_record = db.query(DatasourceType).filter(DatasourceType.id == id).first()
     if not exist_record:
         raise MyException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy datasource type.",
         )
 
-    # Kiểm tra người sở hữu của bản ghi
-    if str(exist_record.user_id) != str(request.state.id):
-        raise MyException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bạn không có quyền truy cập vào tài nguyên này.",
-        )
-
-    # Xóa datasource
     db.delete(exist_record)
     db.commit()
 
     return JSONResponse(
-        content={"detail": "Xóa datasource thành công."},
+        content={"detail": "Xóa datasource type thành công."},
         status_code=status.HTTP_200_OK,
     )

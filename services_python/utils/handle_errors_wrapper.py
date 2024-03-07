@@ -16,7 +16,7 @@ def handle_database_errors(func):
             print(f"Error: {e}")
             raise MyException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Có lỗi xảy ra, vui lòng thử lại sau.",
+                detail=f"Error: {e}",
             )
 
     return wrapper

@@ -4,7 +4,7 @@ from pydantic import UUID4
 
 from services_python.data_service.app.database import get_session
 import services_python.data_service.app.controllers.datasources as ctl
-import services_python.data_service.app.schemas as schemas
+import services_python.data_service.app.schemas.datasources as schemas
 import services_python.middlewares.auth as middlewares
 
 router = APIRouter(prefix="/datasources", tags=["Datasources"])

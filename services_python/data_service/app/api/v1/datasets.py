@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import UUID4
 
 from services_python.data_service.app.database import get_session
-import services_python.data_service.app.controllers.datasources as ctl
-import services_python.data_service.app.schemas as schemas
+import services_python.data_service.app.controllers.datasets as ctl
+import services_python.data_service.app.schemas.datasets as schemas
 import services_python.middlewares.auth as middlewares
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
@@ -20,7 +20,7 @@ async def get_datasets(
 
 @router.post("/", dependencies=[Depends(middlewares.verify_user)])
 async def create_dataset(
-    request: Request, data: schemas.DatasourceCreate, db: Session = Depends(get_session)
+    request: Request, data: schemas.DatasetCreate, db: Session = Depends(get_session)
 ):
     return ctl.create_dataset(db, data, request)
 
@@ -29,7 +29,7 @@ async def create_dataset(
 async def update_dataset(
     request: Request,
     id: UUID4,
-    data: schemas.DatasourceUpdate,
+    data: schemas.DatasetUpdate,
     db: Session = Depends(get_session),
 ):
     return ctl.update_dataset(db, id, data, request)

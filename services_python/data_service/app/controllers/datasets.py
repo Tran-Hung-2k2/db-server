@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from fastapi import status, Request
 from fastapi.responses import JSONResponse
 
-from services_python.data_service.app.models import Datasource
-import services_python.data_service.app.schemas as schemas
+from services_python.data_service.app.models import Dataset, Datasource
+import services_python.data_service.app.schemas.datasets as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
@@ -14,11 +14,12 @@ LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
 @handle_database_errors
 def get_datasets(db: Session, request: Request):
-    ALLOWED_FILTER_FIELDS = {"id", "user_id", "type"}
+    ALLOWED_FILTER_FIELDS = {"id", "datasource_id", "user_id"}
     query_params = dict(request.query_params)
 
     if request.state.role != label.role["ADMIN"]:
-        query_params["user_id"] = request.state.id
+        # Nếu không phải là ADMIN, thêm điều kiện để chỉ lấy datasets thuộc về user_id
+        query_params["user_id"] = str(request.state.id)
 
     # Lấy giá trị skip và limit từ query_params
     skip = int(query_params.get("skip", 0))
@@ -27,37 +28,58 @@ def get_datasets(db: Session, request: Request):
     # Giới hạn giá trị limit trong khoảng từ 0 đến 200
     limit = min(max(int(limit), 0), 200)
 
-    query = db.query(Datasource)
+    query = db.query(Dataset)
+    query = query.join(Datasource)
     for field, value in query_params.items():
         if field in ALLOWED_FILTER_FIELDS and value is not None:
             # Lọc theo trường và giá trị tương ứng
-            query = query.filter(getattr(Datasource, field) == value)
+            # Nếu là user_id, thì lọc trong bảng Datasource
+            if field == "user_id":
+                query = query.filter(Datasource.user_id == value)
+            else:
+                # Ngược lại, lọc trong bảng dataset
+                query = query.filter(getattr(Dataset, field) == value)
 
-    datasources = query.offset(skip).limit(limit).all()
+    records = query.offset(skip).limit(limit).all()
 
     return JSONResponse(
         content={
-            "detail": "Lấy danh sách datasource thành công.",
+            "detail": "Lấy danh sách dataset thành công.",
             "skip": skip,
             "limit": limit,
             "total": query.count(),
-            "data": [datasource.to_dict() for datasource in datasources],
+            "data": [record.to_dict() for record in records],
         },
         status_code=status.HTTP_200_OK,
     )
 
 
 @handle_database_errors
-def create_dataset(db: Session, data: schemas.DatasourceCreate, request: Request):
-    data.user_id = request.state.id
-    new_record = Datasource(**data.dict())
+def create_dataset(db: Session, data: schemas.DatasetCreate, request: Request):
+    # Kiểm tra xem datasource tồn tại hay không
+    exist_datasource = (
+        db.query(Datasource).filter(Datasource.id == data.datasource_id).first()
+    )
+    if not exist_datasource:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
+        )
+
+    # Kiểm tra người sở hữu của bản ghi
+    if str(exist_datasource.user_id) != str(request.state.id):
+        raise MyException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền truy cập vào tài nguyên này.",
+        )
+
+    new_record = Dataset(**data.dict())
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
 
     return JSONResponse(
         content={
-            "detail": "Tạo datasource thành công.",
+            "detail": "Tạo dataset thành công.",
             "data": new_record.to_dict(),
         },
         status_code=status.HTTP_201_CREATED,
@@ -66,17 +88,28 @@ def create_dataset(db: Session, data: schemas.DatasourceCreate, request: Request
 
 @handle_database_errors
 def update_dataset(
-    db: Session, id: int, updated_data: schemas.DatasourceUpdate, request: Request
+    db: Session, id: int, updated_data: schemas.DatasetUpdate, request: Request
 ):
+    # Kiểm tra xem dataset tồn tại hay không
+    exist_dataset = db.query(Dataset).filter(Dataset.id == id).first()
+    if not exist_dataset:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy dataset."
+        )
+
     # Kiểm tra xem datasource tồn tại hay không
-    exist_record = db.query(Datasource).filter(Datasource.id == id).first()
-    if not exist_record:
+    exist_datasource = (
+        db.query(Datasource)
+        .filter(Datasource.id == exist_dataset.datasource_id)
+        .first()
+    )
+    if not exist_datasource:
         raise MyException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
         )
 
     # Kiểm tra người sở hữu của bản ghi
-    if str(exist_record.user_id) != str(request.state.id):
+    if str(exist_datasource.user_id) != str(request.state.id):
         raise MyException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền truy cập vào tài nguyên này.",
@@ -87,42 +120,53 @@ def update_dataset(
 
     # Cập nhật dữ liệu của datasource
     for key, value in updated_data_dict.items():
-        setattr(exist_record, key, value)
+        setattr(exist_dataset, key, value)
 
     # Lưu thay đổi vào cơ sở dữ liệu
     db.commit()
-    db.refresh(exist_record)
+    db.refresh(exist_dataset)
 
     return JSONResponse(
         content={
-            "detail": "Tạo datasource thành công.",
-            "data": exist_record.to_dict(),
+            "detail": "Cập nhật dataset thành công.",
+            "data": exist_dataset.to_dict(),
         },
         status_code=status.HTTP_200_OK,
     )
 
 
 @handle_database_errors
-def delete_dataset(db: Session, datasource_id: int, request: Request):
+def delete_dataset(db: Session, id: int, request: Request):
+    # Kiểm tra xem dataset tồn tại hay không
+    exist_dataset = db.query(Dataset).filter(Dataset.id == id).first()
+    if not exist_dataset:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy dataset."
+        )
+
     # Kiểm tra xem datasource tồn tại hay không
-    exist_record = db.query(Datasource).filter(Datasource.id == datasource_id).first()
-    if not exist_record:
+    exist_datasource = (
+        db.query(Datasource)
+        .filter(Datasource.id == exist_dataset.datasource_id)
+        .first()
+    )
+    if not exist_datasource:
         raise MyException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
         )
 
     # Kiểm tra người sở hữu của bản ghi
-    if str(exist_record.user_id) != str(request.state.id):
+    if str(exist_datasource.user_id) != str(request.state.id):
         raise MyException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền truy cập vào tài nguyên này.",
         )
 
     # Xóa datasource
-    db.delete(exist_record)
+    db.delete(exist_dataset)
     db.commit()
 
     return JSONResponse(
-        content={"detail": "Xóa datasource thành công."},
+        content={"detail": "Xóa dataset thành công."},
         status_code=status.HTTP_200_OK,
     )

@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append(".")
-
 import grpc
 import grpc.aio
 from fastapi import Request, HTTPException, status
