@@ -1,71 +1,83 @@
-import psycopg2
 import csv
+import psycopg2
+from psycopg2 import Error
 
-# PostgreSQL database connection parameters
-db_params = {
-    'dbname': 'defaultdb',
-    'user': 'avnadmin',
-    'password': 'AVNS_2O8YFLTThEFiF075YFt',
-    'host': 'pg-1ade2076-hoatungduong12-7d05.a.aivencloud.com',
-    'port': '13340',
-    'sslmode': 'require'
+# Thông tin kết nối PostgreSQL
+db_config = {
+    "host": "localhost",
+    "database": "postgres",
+    "user": "postgres",
+    "password": "postgres",
 }
 
-# CSV file path
-csv_file = 'hungtv.csv'
+# Đường dẫn đến tệp CSV
+csv_file_path = "test.csv"
 
-def get_csv_header(csv_file):
-    """Read the header of the CSV file to get column names."""
-    with open(csv_file, 'r') as file:
-        reader = csv.reader(file)
-        header = next(reader)  # Get the header row
-    return header
 
 def create_table(cursor, header):
-    """Create a new table in the database based on CSV header."""
-    column_definitions = ', '.join([f'{column_name} VARCHAR' for column_name in header])
-    create_table_query = f"CREATE TABLE IF NOT EXISTS my_table ({column_definitions});"
     try:
+        # Tạo câu lệnh CREATE TABLE dựa trên header của CSV
+        columns = [f"{col} TEXT" for col in header]
+        create_table_query = f"CREATE TABLE IF NOT EXISTS test ({', '.join(columns)});"
         cursor.execute(create_table_query)
-        print("Table created successfully.")
-    except Exception as e:
-        print(f"Error creating table: {e}")
+        print("Bảng 'test' đã được tạo hoặc đã tồn tại")
 
-def insert_data(cursor, conn, csv_file):
-    """Insert data from CSV file into the table."""
-    with open(csv_file, 'r') as file:
-        reader = csv.reader(file)
-        next(reader)  # Skip header row
-        for row in reader:
-            try:
-                cursor.execute("INSERT INTO my_table VALUES (%s);" % ','.join(['%s'] * len(row)), row)
-            except Exception as e:
-                print(f"Error inserting row {row}: {e}")
-    conn.commit()
-    print("Data inserted successfully.")
+    except (Exception, Error) as error:
+        print("Lỗi khi tạo bảng 'test':", error)
 
-def main():
+
+def load_data_from_csv(csv_file, conn):
     try:
-        # Connect to PostgreSQL database
-        conn = psycopg2.connect(**db_params)
         cursor = conn.cursor()
 
-        # Get CSV header to infer table schema
-        header = get_csv_header(csv_file)
+        # Đọc header của tệp CSV để xác định cấu trúc bảng
+        with open(csv_file, "r") as file:
+            reader = csv.reader(file)
+            header = next(reader)
 
-        # Create table dynamically based on CSV header
+        # Tạo bảng 'test' nếu chưa tồn tại
         create_table(cursor, header)
+        print("Bảng 'test' đã được tạo hoặc đã tồn tại")
 
-        # Insert data from CSV file
-        insert_data(cursor, conn, csv_file)
+        # Đọc dữ liệu từ tệp CSV và chèn vào cơ sở dữ liệu
+        with open(csv_file, "r") as file:
+            reader = csv.reader(file)
+            next(reader)  # Bỏ qua dòng tiêu đề nếu có
 
-    except Exception as e:
-        print(f"Error: {e}")
+            # Get all rows from the CSV file
+            rows = [tuple(row) for row in reader]
+
+            # Điều chỉnh câu lệnh INSERT tùy theo cấu trúc của bảng trong cơ sở dữ liệu
+            insert_query = (
+                f"INSERT INTO test VALUES ({', '.join(['%s'] * len(header))})"
+            )
+
+            # Execute the INSERT statement with executemany
+            cursor.executemany(insert_query, rows)
+
+        conn.commit()
+        print(
+            f"Dữ liệu đã được tải thành công từ CSV vào bảng 'test' trong PostgreSQL ({len(rows)} rows)"
+        )
+
+    except (Exception, Error) as error:
+        print("Lỗi khi tải dữ liệu từ CSV vào bảng 'test' trong PostgreSQL:", error)
+
     finally:
-        # Close database connection
-        if conn is not None:
-            conn.close()
-            print("Database connection closed.")
+        if conn:
+            cursor.close()
 
-if __name__ == "__main__":
-    main()
+
+try:
+    # Kết nối đến cơ sở dữ liệu PostgreSQL
+    connection = psycopg2.connect(**db_config)
+
+    # Gọi hàm để tải dữ liệu từ CSV vào bảng 'test' trong PostgreSQL
+    load_data_from_csv(csv_file_path, connection)
+
+except (Exception, Error) as error:
+    print("Lỗi kết nối tới PostgreSQL:", error)
+
+finally:
+    if connection:
+        connection.close()

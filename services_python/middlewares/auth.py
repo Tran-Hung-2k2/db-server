@@ -1,5 +1,6 @@
 import grpc
 import grpc.aio
+import services_python.constants.label as label
 from fastapi import Request, HTTPException, status
 from services_python.pb.auth_pb2 import VerifyRequest
 from services_python.pb.auth_pb2_grpc import AuthServiceStub
@@ -44,12 +45,12 @@ async def verify_role(request: Request, required_roles: list[str]):
 
 
 async def verify_admin(request: Request):
-    return await verify_role(request, required_roles=["admin"])
+    return await verify_role(request, required_roles=[label.role["ADMIN"]])
 
 
 async def verify_user(request: Request):
-    return await verify_role(request, required_roles=["user"])
+    return await verify_role(request, required_roles=[label.role["USER"]])
 
 
 async def verify_all(request: Request):
-    return await verify_role(request, required_roles=["admin", "user"])
+    return await verify_role(request, required_roles=[label.role["ADMIN"], label.role["USER"]])

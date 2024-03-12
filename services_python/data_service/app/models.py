@@ -18,16 +18,6 @@ class Base(declarative_base(), SerializerMixin):
         db.DateTime(timezone=True), server_default=db.func.now(), onupdate=db.func.now()
     )
 
-    # def to_dict(self):
-    #     return {
-    #         col.name: (
-    #             str(getattr(self, col.name))
-    #             if isinstance(col.type, (UUID, db.DateTime))
-    #             else getattr(self, col.name)
-    #         )
-    #         for col in self.__table__.columns
-    #     }
-
 
 class DatasourceType(Base):
     __tablename__ = "datasource_types"
@@ -66,8 +56,7 @@ class Dataset(Base):
     __tablename__ = "datasets"
 
     datasource_id = db.Column(
-        UUID(as_uuid=True),
-        db.ForeignKey("datasources.id"),
+        UUID(as_uuid=True), db.ForeignKey("datasources.id"), nullable=False
     )
     name = db.Column(db.String, nullable=False)
     other = db.Column(db.JSON)

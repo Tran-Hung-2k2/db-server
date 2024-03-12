@@ -3,9 +3,10 @@ from typing import Optional
 
 
 class DatasetCreate(BaseModel):
+    datasource_id: UUID4
     name: str
-    datasource_id: Optional[UUID4] = None
     other: Optional[dict] = None
+
 
 class DatasetUpdate(BaseModel):
     name: str

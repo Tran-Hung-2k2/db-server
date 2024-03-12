@@ -1,3 +1,5 @@
 nginx_local
 env
 __pycache__
+*.csv
+

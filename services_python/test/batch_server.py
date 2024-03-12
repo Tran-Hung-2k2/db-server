@@ -237,7 +237,6 @@ def postgres():
     print(sql_command)
 
     try:
-        # Connect to DuckDB in-memory database
         datasource_info = get_datasource_info(datasource_id=datasource_id)
         conn = get_datasource_connection(datasource_info=datasource_info)
         result = pd.read_sql_query(sql_command, conn)
@@ -295,7 +294,6 @@ def query_sql():
         dt = read_from_s3_as_arrow(delta_table_path=delta_table_path, version=version)
         result = con.execute(sql_command).fetchdf()
 
-        save_to_s3_as_delta(delta_table_path=delta_table_path, df=result)
         con.close()
 
         return jsonify({"result": result.to_dict()}), 200
