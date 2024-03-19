@@ -71,6 +71,7 @@ def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: in
             df,
             engine="pyarrow",
             storage_options=storage_options,
+            mode="overwrite",
         )
 
         return
@@ -79,6 +80,24 @@ def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: in
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Có lỗi xảy ra, vui lòng thử lại sau.",
     )
+
+
+def insert_postgres_to_s3_as_delta(user_id: str, dataset_id: int):
+
+    dataset_path = f"s3://{user_id}/{dataset_id}"
+
+    # Create S3 bucket with user_id as the bucket name
+    create_s3_bucket(user_id)
+
+    write_deltalake(
+        dataset_path,
+        df,
+        engine="pyarrow",
+        storage_options=storage_options,
+        mode="overwrite",
+    )
+
+    return
 
 
 def query_sql_from_delta_table(

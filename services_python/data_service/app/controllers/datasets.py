@@ -68,7 +68,7 @@ def query_table_datasets(db: Session, request: Request):
     limit = int(query_params.get("limit", LIMIT_RECORD))
 
     # Giới hạn giá trị limit trong khoảng từ 0 đến 200
-    limit = min(max(int(limit), 0), 2000000000)
+    limit = min(max(int(limit), 0), 200)
 
     if request.state.role != label.role["ADMIN"]:
         # Kiểm tra xem dataset tồn tại hay không
@@ -115,6 +115,47 @@ def query_table_datasets(db: Session, request: Request):
 
 
 @handle_database_errors
+def create_dataset(db: Session, data: schemas.DatasetCreate, request: Request):
+    # Kiểm tra xem datasource tồn tại hay không
+    exist_datasource = (
+        db.query(Datasource).filter(Datasource.id == data.datasource_id).first()
+    )
+    if not exist_datasource:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
+        )
+
+    # Kiểm tra người sở hữu của bản ghi
+    if str(exist_datasource.user_id) != str(request.state.id):
+        raise MyException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền truy cập vào tài nguyên này.",
+        )
+
+    if (
+        exist_datasource.datasource_type.name
+        == label.datasource_type_name["UPLOAD_FILE"]
+    ):
+        raise MyException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Datasource type không phù hợp.",
+        )
+
+    new_record = Dataset(**data.dict())
+    db.add(new_record)
+    db.commit()
+    db.refresh(new_record)
+
+    return JSONResponse(
+        content={
+            "detail": "Tạo dataset thành công.",
+            "data": new_record.to_dict(),
+        },
+        status_code=status.HTTP_201_CREATED,
+    )
+
+
+@handle_database_errors
 def create_dataset_upload_file(
     db: Session, file_data: UploadFile, data: schemas.DatasetCreate, request: Request
 ):
@@ -140,7 +181,7 @@ def create_dataset_upload_file(
     ):
         raise MyException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Dataset type không phù hợp.",
+            detail="Datasource type không phù hợp.",
         )
 
     new_record = Dataset(**data.dict())
@@ -156,6 +197,42 @@ def create_dataset_upload_file(
             "data": new_record.to_dict(),
         },
         status_code=status.HTTP_201_CREATED,
+    )
+
+
+@handle_database_errors
+def run_dataset(db: Session, id: int, request: Request):
+    # Kiểm tra xem dataset tồn tại hay không
+    exist_dataset = db.query(Dataset).filter(Dataset.id == id).first()
+    if not exist_dataset:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy dataset."
+        )
+
+    # Kiểm tra xem datasource tồn tại hay không
+    exist_datasource = (
+        db.query(Datasource)
+        .filter(Datasource.id == exist_dataset.datasource_id)
+        .first()
+    )
+    if not exist_datasource:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
+        )
+
+    # Kiểm tra người sở hữu của bản ghi
+    if str(exist_datasource.user_id) != str(request.state.id):
+        raise MyException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền truy cập vào tài nguyên này.",
+        )
+
+    return JSONResponse(
+        content={
+            "detail": "Cập nhật dataset thành công.",
+            "data": exist_dataset.to_dict(),
+        },
+        status_code=status.HTTP_200_OK,
     )
 
 

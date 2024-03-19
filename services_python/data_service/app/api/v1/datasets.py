@@ -43,6 +43,28 @@ async def create_dataset_upload_file(
     )
 
 
+@router.post("/", dependencies=[Depends(middlewares.verify_user)])
+async def create_dataset(
+    request: Request,
+    data: schemas.DatasetCreate,
+    db: Session = Depends(get_session),
+):
+    return ctl.create_dataset(
+        db,
+        data,
+        request,
+    )
+
+
+@router.post("/run/{id}", dependencies=[Depends(middlewares.verify_user)])
+async def run_dataset(
+    request: Request,
+    id: UUID4,
+    db: Session = Depends(get_session),
+):
+    return ctl.run_dataset(db, id, request)
+
+
 @router.put("/{id}", dependencies=[Depends(middlewares.verify_user)])
 async def update_dataset(
     request: Request,
