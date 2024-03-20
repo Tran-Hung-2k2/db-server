@@ -26,6 +26,19 @@ async def query_table_datasets(
     return ctl.query_table_datasets(db, request)
 
 
+@router.post("/", dependencies=[Depends(middlewares.verify_user)])
+async def create_dataset(
+    request: Request,
+    data: schemas.DatasetCreate,
+    db: Session = Depends(get_session),
+):
+    return ctl.create_dataset(
+        db,
+        data,
+        request,
+    )
+
+
 @router.post("/upload_file", dependencies=[Depends(middlewares.verify_user)])
 async def create_dataset_upload_file(
     request: Request,
@@ -39,19 +52,6 @@ async def create_dataset_upload_file(
         db,
         file_data,
         schemas.DatasetCreate(datasource_id=datasource_id, name=name, other=other),
-        request,
-    )
-
-
-@router.post("/", dependencies=[Depends(middlewares.verify_user)])
-async def create_dataset(
-    request: Request,
-    data: schemas.DatasetCreate,
-    db: Session = Depends(get_session),
-):
-    return ctl.create_dataset(
-        db,
-        data,
         request,
     )
 

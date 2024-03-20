@@ -11,6 +11,7 @@ from services_python.utils.handle_errors_wrapper import handle_database_errors
 from services_python.utils.delta import (
     save_file_to_s3_as_delta,
     query_sql_from_delta_table,
+    insert_postgres_to_s3_as_delta,
 )
 
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
@@ -208,28 +209,28 @@ def run_dataset(db: Session, id: int, request: Request):
         raise MyException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy dataset."
         )
-
-    # Kiểm tra xem datasource tồn tại hay không
-    exist_datasource = (
-        db.query(Datasource)
-        .filter(Datasource.id == exist_dataset.datasource_id)
-        .first()
-    )
-    if not exist_datasource:
+    if not exist_dataset.datasource:
         raise MyException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy datasource."
         )
 
     # Kiểm tra người sở hữu của bản ghi
-    if str(exist_datasource.user_id) != str(request.state.id):
+    if str(exist_dataset.datasource.user_id) != str(request.state.id):
         raise MyException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Bạn không có quyền truy cập vào tài nguyên này.",
         )
 
+    insert_postgres_to_s3_as_delta(
+        request.state.id,
+        exist_dataset.id,
+        exist_dataset.other["sql_cmd"],
+        exist_dataset.datasource,
+    )
+
     return JSONResponse(
         content={
-            "detail": "Cập nhật dataset thành công.",
+            "detail": "Chạy dataset thành công.",
             "data": exist_dataset.to_dict(),
         },
         status_code=status.HTTP_200_OK,

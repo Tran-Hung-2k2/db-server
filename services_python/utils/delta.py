@@ -1,11 +1,13 @@
 import os
 import json
 import duckdb
+import psycopg2
 import pandas as pd
 from minio import Minio
 from urllib.parse import urlsplit
 from deltalake import write_deltalake, DeltaTable
 from fastapi import UploadFile, status
+from services_python.data_service.app.models import Datasource
 
 from services_python.utils.exception import MyException
 
@@ -47,6 +49,23 @@ def create_s3_bucket(bucket_name):
         print(f"Bucket '{bucket_name}' already exists.")
 
 
+def save_data_to_s3_as_delta(user_id, dataset_id, df: pd.DataFrame):
+    dataset_path = f"s3://{user_id}/{dataset_id}"
+
+    # Create S3 bucket with user_id as the bucket name
+    create_s3_bucket(user_id)
+
+    write_deltalake(
+        dataset_path,
+        df,
+        engine="pyarrow",
+        storage_options=storage_options,
+        mode="overwrite",
+    )
+
+    return
+
+
 def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: int):
     if file_data:
         file_extension = file_data.filename.rsplit(".", 1)[1].lower()
@@ -61,18 +80,7 @@ def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: in
                 detail="Định dạng file không được hỗ trợ.",
             )
 
-        dataset_path = f"s3://{user_id}/{dataset_id}"
-
-        # Create S3 bucket with user_id as the bucket name
-        create_s3_bucket(user_id)
-
-        write_deltalake(
-            dataset_path,
-            df,
-            engine="pyarrow",
-            storage_options=storage_options,
-            mode="overwrite",
-        )
+        save_data_to_s3_as_delta(user_id, dataset_id, df)
 
         return
 
@@ -82,20 +90,28 @@ def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: in
     )
 
 
-def insert_postgres_to_s3_as_delta(user_id: str, dataset_id: int):
-
-    dataset_path = f"s3://{user_id}/{dataset_id}"
-
-    # Create S3 bucket with user_id as the bucket name
-    create_s3_bucket(user_id)
-
-    write_deltalake(
-        dataset_path,
-        df,
-        engine="pyarrow",
-        storage_options=storage_options,
-        mode="overwrite",
+def insert_postgres_to_s3_as_delta(
+    user_id: str, dataset_id: int, sql_cmd: str, datasource: Datasource
+):
+    # Kết nối tới cơ sở dữ liệu PostgreSQL
+    conn = psycopg2.connect(
+        host=datasource.host,
+        port=datasource.port,
+        user=datasource.other["username"],
+        password=datasource.other["password"],
+        database=datasource.other["db_name"],
     )
+
+    try:
+        # Thực thi truy vấn SQL và đưa kết quả vào DataFrame
+        df = pd.read_sql(sql_cmd, conn)
+
+        # Lưu dữ liệu vào S3 dưới dạng Delta format
+        save_data_to_s3_as_delta(user_id, dataset_id, df)
+    except Exception as e:
+        raise e
+    finally:
+        conn.close()
 
     return
 
