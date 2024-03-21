@@ -14,6 +14,7 @@ import (
 func main() {
 	godotenv.Load()
 	restHost := utils.GetEnv("REST_HOST", ":8082")
+	restPort := utils.GetEnv("REST_PORT", "8081")
 	authGrpcServer := utils.GetEnv("AUTH_GRPC_SERVER", "127.0.0.1:50051")
 
 	// Kết nối database
@@ -28,5 +29,5 @@ func main() {
 
 	// Chạy server
 	server := restAPI.InitRouter()
-	server.Run(restHost)
+	server.Run(restHost + ":" + restPort)
 }

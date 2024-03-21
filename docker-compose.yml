@@ -10,6 +10,7 @@ services:
     depends_on:
       - auth
       - users
+      - data
     networks:
       - main
 
@@ -20,12 +21,10 @@ services:
     ports:
       - "10080:8080"
       - "50051:50051"
-    depends_on:
-      - postgres
     volumes:
       - /root/db-server:/usr/src/app/
     env_file:
-      - services_go/.env
+      - .env
     networks:
       - main
 
@@ -36,36 +35,25 @@ services:
     ports:
       - "10081:8080"
       - "50052:50051"
-    depends_on:
-      - postgres
     volumes:
       - /root/db-server:/usr/src/app/
     env_file:
-      - services_go/.env
+      - .env
     networks:
       - main
 
-  postgres:
-    image: postgres:latest
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
-      - PGDATA=/var/lib/postgresql/pgdata
-    volumes:
-      - postgres:/var/lib/postgresql/pgdata
-      - ./db:/docker-entrypoint-initdb.d/
-    env_file:
-      - services_go/.env
+  data:
+    build:
+      context: .
+      dockerfile: services_python/data_service/Dockerfile
     ports:
-      - "5432:5432"
+      - "10082:8080"
+    volumes:
+      - /app/db-server:/usr/src/app/
+    env_file:
+      - .env
     networks:
       - main
-    restart: unless-stopped
-
-volumes:
-  postgres:
-
 
 networks:
   main:

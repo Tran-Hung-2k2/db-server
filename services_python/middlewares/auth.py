@@ -1,3 +1,4 @@
+import os
 import grpc
 import grpc.aio
 import services_python.constants.label as label
@@ -5,13 +6,15 @@ from fastapi import Request, HTTPException, status
 from services_python.pb.auth_pb2 import VerifyRequest
 from services_python.pb.auth_pb2_grpc import AuthServiceStub
 
+AUTH_GRPC_SERVER = os.getenv("AUTH_GRPC_SERVER", "127.0.0.1:50051")
+
 
 async def verify_role(request: Request, required_roles: list[str]):
     # Lấy access_token từ cookies
     access_token = request.cookies.get("access_token")
 
     # Gọi service VerifyRole từ gRPC server
-    async with grpc.aio.insecure_channel("127.0.0.1:50051") as channel:
+    async with grpc.aio.insecure_channel(AUTH_GRPC_SERVER) as channel:
         stub = AuthServiceStub(channel)
         verify_request = VerifyRequest(token=access_token, roles=required_roles)
         try:
@@ -53,4 +56,6 @@ async def verify_user(request: Request):
 
 
 async def verify_all(request: Request):
-    return await verify_role(request, required_roles=[label.role["ADMIN"], label.role["USER"]])
+    return await verify_role(
+        request, required_roles=[label.role["ADMIN"], label.role["USER"]]
+    )
