@@ -21,6 +21,8 @@ func ConnectToPostgres(model interface{}) {
 	password := utils.GetEnv("DB_PASSWORD", "postgres")
 	dbname := utils.GetEnv("DB_NAME", "postgres")
 
+	print(host)
+
 	// Tạo chuỗi kết nối DSN từ biến môi trường hoặc giá trị mặc định
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Shanghai", host, user, password, dbname, port)
 

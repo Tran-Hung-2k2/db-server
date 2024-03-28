@@ -8,7 +8,6 @@ from urllib.parse import urlsplit
 from deltalake import write_deltalake, DeltaTable
 from fastapi import UploadFile, status
 
-from services_python.data_service.app.models import Datasource
 from services_python.utils.exception import MyException
 
 MINIO_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY_ID", "xFHb1cqyhEJ8NVY7I8G1")
@@ -88,32 +87,6 @@ def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: in
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Có lỗi xảy ra, vui lòng thử lại sau.",
     )
-
-
-def insert_postgres_to_s3_as_delta(
-    user_id: str, dataset_id: int, sql_cmd: str, datasource: Datasource
-):
-    # Kết nối tới cơ sở dữ liệu PostgreSQL
-    conn = psycopg2.connect(
-        host=datasource.host,
-        port=datasource.port,
-        user=datasource.other["username"],
-        password=datasource.other["password"],
-        database=datasource.other["db_name"],
-    )
-
-    try:
-        # Thực thi truy vấn SQL và đưa kết quả vào DataFrame
-        df = pd.read_sql(sql_cmd, conn)
-
-        # Lưu dữ liệu vào S3 dưới dạng Delta format
-        save_data_to_s3_as_delta(user_id, dataset_id, df)
-    except Exception as e:
-        raise e
-    finally:
-        conn.close()
-
-    return
 
 
 def query_sql_from_delta_table(

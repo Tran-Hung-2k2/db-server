@@ -1,11 +1,12 @@
-from sqlalchemy.orm import Session
-from fastapi import APIRouter, UploadFile, Request, Depends, Form, File
+import json
 from pydantic import UUID4
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
-from services_python.data_service.app.database import get_session
 import services_python.data_service.app.controllers.datasets as ctl
 import services_python.data_service.app.schemas.datasets as schemas
 import services_python.middlewares.auth as middlewares
+from services_python.data_service.app.database import get_session
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
@@ -15,6 +16,7 @@ async def get_datasets(
     request: Request,
     db: Session = Depends(get_session),
 ):
+
     return ctl.get_datasets(db, request)
 
 
@@ -42,16 +44,18 @@ async def create_dataset(
 @router.post("/upload_file", dependencies=[Depends(middlewares.verify_user)])
 async def create_dataset_upload_file(
     request: Request,
-    datasource_id: str = Form(...),
     name: str = Form(...),
     other: str = Form(None),
     file_data: UploadFile = File(...),
     db: Session = Depends(get_session),
 ):
+    # Ép kiểu dữ liệu từ str thành dict
+    other_dict = json.loads(other) if other else None
+
     return ctl.create_dataset_upload_file(
         db,
         file_data,
-        schemas.DatasetCreate(datasource_id=datasource_id, name=name, other=other),
+        schemas.DatasetCreate(name=name, other=other_dict),
         request,
     )
 

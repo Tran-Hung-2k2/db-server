@@ -1,5 +1,9 @@
 nginx_local
+docker_images
+data
 env
 __pycache__
 *.csv
+*.zip
+*.tar
 

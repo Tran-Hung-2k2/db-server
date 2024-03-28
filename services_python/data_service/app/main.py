@@ -5,7 +5,6 @@ sys.path.append(".")
 
 from dotenv import load_dotenv
 
-# migrate all# Tải giá trị từ file .env vào biến môi trường
 load_dotenv()
 
 import uvicorn
@@ -17,14 +16,13 @@ from services_python.data_service.app.database import engine
 from services_python.data_service.app.models import Base
 from services_python.utils.exception import MyException, my_exception_handler
 
-
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=['myfrontend.com'],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

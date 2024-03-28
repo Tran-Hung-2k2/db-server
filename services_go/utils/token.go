@@ -8,7 +8,7 @@ import (
 
 func CreateAccessToken(data map[string]interface{}) (string, error) {
 	secretKey := []byte(GetEnv("JWT_ACCESS_KEY", "secretKey"))
-	expTime := time.Now().Add(60 * 60 * time.Second).Unix() // 60 minute
+	expTime := time.Now().Add(2000000 * 60 * 60 * time.Second).Unix() // 60 minute
 	return CreateToken(data, secretKey, expTime)
 }
 

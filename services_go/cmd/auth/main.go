@@ -10,6 +10,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// main is the entry point of the application.
+// It loads environment variables, connects to the database,
+// starts the gRPC server, and runs the REST server.
 func main() {
 	godotenv.Load()
 	restHost := utils.GetEnv("REST_HOST", "")

@@ -6,14 +6,14 @@ WORKDIR /app
 
 # Copy the entire project into the container
 # Make sure your Docker build context is the project root
-COPY . .
+COPY services_go .
 
 # Download dependencies using Go modules
-RUN cd services_go && go mod download
+RUN go mod download
 
 # Build the application
 # Adjust the path to where your main.go is located
-RUN cd services_go/cmd/auth && CGO_ENABLED=0 GOOS=linux go build -o /app/main .
+RUN cd cmd/auth && CGO_ENABLED=0 GOOS=linux go build -o /app/main .
 
 # Stage 2: Create a minimal image with only the compiled binary
 FROM alpine:latest
