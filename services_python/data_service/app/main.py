@@ -9,7 +9,7 @@ load_dotenv()
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
 
 from services_python.data_service.app.api.v1 import router
 from services_python.data_service.app.database import engine

@@ -19,7 +19,7 @@ func InitRouter() *gin.Engine {
 	// Áp dụng middleware CORS vào router
 	r.Use(configCORSMiddleware())
 
-	basePath := "/api/v1/users"
+	basePath := "/api/users"
 
 	// Tạo nhóm route
 	v1 := r.Group(basePath)
