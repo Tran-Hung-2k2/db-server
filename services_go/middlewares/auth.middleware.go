@@ -40,7 +40,8 @@ func VerifyRole(roles []string) gin.HandlerFunc {
 		}
 
 		// Đặt dữ liệu vào Context
-		ctx.Set("authData", response.Data)
+		ctx.Set("id", response.Data["id"])
+		ctx.Set("role", response.Data["role"])
 
 		// Tiếp tục xử lý ở các middleware và controller tiếp theo
 		ctx.Next()

@@ -44,6 +44,9 @@ func CreateUser(ctx *gin.Context) {
 		return
 	}
 
+	// Mã hóa mật khẩu của user
+	user.HashPassword()
+
 	result := db.DB.Create(&user)
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})

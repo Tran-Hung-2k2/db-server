@@ -1,14 +1,10 @@
-package auth
+package users
 
 import (
-	"db-server/docs"
 	"db-server/middlewares"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // InitRouter khởi tạo và cấu hình router của ứng dụng.
@@ -18,21 +14,26 @@ func InitRouter() *gin.Engine {
 
 	// Áp dụng middleware CORS vào router
 	r.Use(configCORSMiddleware())
-	r.Use(gin.CustomRecovery(middlewares.ErrorHandler))
 
-	basePath := "/api/auth"
+	basePathMart := "/api/data_marts"
+	basePathSet := "/api/datasets"
 
 	// Tạo nhóm route
-	v1 := r.Group(basePath)
+	v1_mart := r.Group(basePathMart)
 	{
-		v1.POST("/signup", SignUp)
-		v1.POST("/signin", SignIn)
-		v1.POST("/logout", Logout)
+		v1_mart.GET("/", middlewares.VerifyUser(), GetDataMart)
+		v1_mart.POST("/", middlewares.VerifyUser(), CreateDataMart)
+		v1_mart.PUT("/:id", middlewares.VerifyUser(), UpdateDataMart)
+		v1_mart.DELETE("/:id", middlewares.VerifyUser(), DeleteDataMart)
 	}
 
-	// Cấu hình thông tin Swagger
-	docs.SwaggerInfo.BasePath = basePath
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	v1_set := r.Group(basePathSet)
+	{
+		v1_set.GET("/", middlewares.VerifyUser(), GetDataMart)
+		v1_set.POST("/", middlewares.VerifyUser(), CreateDataMart)
+		v1_set.PUT("/:id", middlewares.VerifyUser(), UpdateDataMart)
+		v1_set.DELETE("/:id", middlewares.VerifyUser(), DeleteDataMart)
+	}
 
 	return r
 }

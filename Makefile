@@ -45,6 +45,12 @@ datasrv:
 authsrv: 
 	cd services_go && go run cmd/auth/main.go
 
-userssrv: 
+martsrv: 
+	cd services_go && go run cmd/data_marts/main.go
+
+channelsrv: 
+	cd services_go && go run cmd/channels/main.go
+
+usersrv: 
 	cd services_go && go run cmd/users/main.go
 

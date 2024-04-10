@@ -1,4 +1,4 @@
-package auth
+package users
 
 import (
 	"db-server/docs"
@@ -18,16 +18,16 @@ func InitRouter() *gin.Engine {
 
 	// Áp dụng middleware CORS vào router
 	r.Use(configCORSMiddleware())
-	r.Use(gin.CustomRecovery(middlewares.ErrorHandler))
 
-	basePath := "/api/auth"
+	basePath := "/api/channels"
 
 	// Tạo nhóm route
 	v1 := r.Group(basePath)
 	{
-		v1.POST("/signup", SignUp)
-		v1.POST("/signin", SignIn)
-		v1.POST("/logout", Logout)
+		v1.GET("/", middlewares.VerifyUser(), GetChannel)
+		v1.POST("/", middlewares.VerifyUser(), CreateChannel)
+		v1.PUT("/:id", middlewares.VerifyUser(), UpdateChannel)
+		v1.DELETE("/:id", middlewares.VerifyUser(), DeleteChannel)
 	}
 
 	// Cấu hình thông tin Swagger
