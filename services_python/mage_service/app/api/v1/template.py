@@ -12,8 +12,10 @@ router = APIRouter(prefix="/pipelines_schedules", tags=["Pipelines_schedules"])
 
 # ROUTES FOR BLOCKS
 
-@router.get("/{uuid}/blocks/{block_uuid}"
-# , dependencies=[Depends(middlewares.verify_all)]
+
+@router.get(
+    "/{uuid}/blocks/{block_uuid}"
+    # , dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_one_block(
     uuid: str,
@@ -25,11 +27,13 @@ async def get_one_block(
         uuid,
         block_uuid,
         # db,
-        request)
+        request,
+    )
 
 
-@router.post("/"
-# , dependencies=[Depends(middlewares.verify_user)]
+@router.post(
+    "/"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_block(
     request: Request,
@@ -43,8 +47,9 @@ async def create_block(
     )
 
 
-@router.put("/{uuid}/blocks/{block_uuid}"
-# , dependencies=[Depends(middlewares.verify_user)]
+@router.put(
+    "/{uuid}/blocks/{block_uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def update_block(
     request: Request,
@@ -61,8 +66,10 @@ async def update_block(
         request,
     )
 
-@router.delete("/{uuid}/blocks/{block_uuid}"
-# , dependencies=[Depends(middlewares.verify_user)]
+
+@router.delete(
+    "/{uuid}/blocks/{block_uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def delete_one_block(
     request: Request,
@@ -74,4 +81,5 @@ async def delete_one_block(
         # db,
         uuid,
         block_uuid,
-        request)
+        request,
+    )

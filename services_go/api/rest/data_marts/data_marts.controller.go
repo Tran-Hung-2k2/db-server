@@ -17,7 +17,7 @@ func GetDataMart(ctx *gin.Context) {
 	query := db.DB
 
 	// Mảng key của query parameters cần lọc
-	queryParams := []string{"id", "user_id"}
+	queryParams := []string{"id", "user_id", "type"}
 
 	// Thêm điều kiện vào truy vấn nếu giá trị không rỗng
 	for _, key := range queryParams {
@@ -54,7 +54,6 @@ func CreateDataMart(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
 		return
 	}
-	fmt.Println(record)
 
 	ctx.JSON(http.StatusOK, gin.H{"data": record})
 }
@@ -87,7 +86,7 @@ func UpdateDataMart(ctx *gin.Context) {
 	}
 
 	// Cập nhật chỉ các trường cần thiết
-	db.DB.Model(&models.DataMart{}).Where("id = ?", id).Select("Name", "Schema ").Updates(&record)
+	db.DB.Model(&models.DataMart{}).Where("id = ?", id).Select("Name").Updates(&record)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Cập nhật thông tin data mart thành công", "data": record})
 }

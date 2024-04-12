@@ -1,6 +1,8 @@
 nginx_local
+minio
 docker_images
 data
+.vscode
 env
 __pycache__
 *.csv

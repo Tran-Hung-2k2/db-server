@@ -2,10 +2,10 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import auth_pb2 as auth__pb2
+import data_mart_pb2 as data__mart__pb2
 
 
-class AuthServiceStub(object):
+class DataMartServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -14,42 +14,42 @@ class AuthServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.VerifyRole = channel.unary_unary(
-                '/proto.AuthService/VerifyRole',
-                request_serializer=auth__pb2.VerifyRequest.SerializeToString,
-                response_deserializer=auth__pb2.VerifyResponse.FromString,
+        self.GetDataMart = channel.unary_unary(
+                '/proto.DataMartService/GetDataMart',
+                request_serializer=data__mart__pb2.GetDataMartRequest.SerializeToString,
+                response_deserializer=data__mart__pb2.GetDataMartResponse.FromString,
                 )
 
 
-class AuthServiceServicer(object):
+class DataMartServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def VerifyRole(self, request, context):
+    def GetDataMart(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_AuthServiceServicer_to_server(servicer, server):
+def add_DataMartServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'VerifyRole': grpc.unary_unary_rpc_method_handler(
-                    servicer.VerifyRole,
-                    request_deserializer=auth__pb2.VerifyRequest.FromString,
-                    response_serializer=auth__pb2.VerifyResponse.SerializeToString,
+            'GetDataMart': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetDataMart,
+                    request_deserializer=data__mart__pb2.GetDataMartRequest.FromString,
+                    response_serializer=data__mart__pb2.GetDataMartResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'proto.AuthService', rpc_method_handlers)
+            'proto.DataMartService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class AuthService(object):
+class DataMartService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def VerifyRole(request,
+    def GetDataMart(request,
             target,
             options=(),
             channel_credentials=None,
@@ -59,8 +59,8 @@ class AuthService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/proto.AuthService/VerifyRole',
-            auth__pb2.VerifyRequest.SerializeToString,
-            auth__pb2.VerifyResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/proto.DataMartService/GetDataMart',
+            data__mart__pb2.GetDataMartRequest.SerializeToString,
+            data__mart__pb2.GetDataMartResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

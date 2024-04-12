@@ -39,8 +39,8 @@ exreq:
 	pip freeze > services_python/data_service/requirements.txt
 
 # Run Service
-datasrv:
-	python services_python/data_service/app/main.py
+magesrv:
+	python services_python/mage_service/app/main.py
 
 authsrv: 
 	cd services_go && go run cmd/auth/main.go

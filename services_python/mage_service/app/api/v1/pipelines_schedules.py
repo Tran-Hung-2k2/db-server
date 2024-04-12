@@ -12,8 +12,10 @@ router = APIRouter(prefix="/pipelines_schedules", tags=["Pipelines_schedules"])
 
 # ROUTES FOR BLOCKS
 
-@router.get("/{uuid}/pipelines_runs"
-# , dependencies=[Depends(middlewares.verify_all)]
+
+@router.get(
+    "/{uuid}/pipelines_runs"
+    # , dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_all_runs(
     uuid: str,
@@ -23,7 +25,8 @@ async def get_all_runs(
     return ctl.get_all_runs(
         uuid,
         # db,
-        request)
+        request,
+    )
 
 
 # @router.post("/"

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./pb";
+
+service ChannelService {
+    rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {};
+}
+
+message GetChannelRequest {
+    string id = 1;
+}
+
+message GetChannelResponse {
+    map<string, string> data = 1;
+}

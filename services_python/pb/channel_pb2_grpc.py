@@ -2,10 +2,10 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import auth_pb2 as auth__pb2
+import channel_pb2 as channel__pb2
 
 
-class AuthServiceStub(object):
+class ChannelServiceStub(object):
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -14,42 +14,42 @@ class AuthServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.VerifyRole = channel.unary_unary(
-                '/proto.AuthService/VerifyRole',
-                request_serializer=auth__pb2.VerifyRequest.SerializeToString,
-                response_deserializer=auth__pb2.VerifyResponse.FromString,
+        self.GetChannel = channel.unary_unary(
+                '/proto.ChannelService/GetChannel',
+                request_serializer=channel__pb2.GetChannelRequest.SerializeToString,
+                response_deserializer=channel__pb2.GetChannelResponse.FromString,
                 )
 
 
-class AuthServiceServicer(object):
+class ChannelServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def VerifyRole(self, request, context):
+    def GetChannel(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
 
-def add_AuthServiceServicer_to_server(servicer, server):
+def add_ChannelServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'VerifyRole': grpc.unary_unary_rpc_method_handler(
-                    servicer.VerifyRole,
-                    request_deserializer=auth__pb2.VerifyRequest.FromString,
-                    response_serializer=auth__pb2.VerifyResponse.SerializeToString,
+            'GetChannel': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetChannel,
+                    request_deserializer=channel__pb2.GetChannelRequest.FromString,
+                    response_serializer=channel__pb2.GetChannelResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'proto.AuthService', rpc_method_handlers)
+            'proto.ChannelService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
  # This class is part of an EXPERIMENTAL API.
-class AuthService(object):
+class ChannelService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def VerifyRole(request,
+    def GetChannel(request,
             target,
             options=(),
             channel_credentials=None,
@@ -59,8 +59,8 @@ class AuthService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/proto.AuthService/VerifyRole',
-            auth__pb2.VerifyRequest.SerializeToString,
-            auth__pb2.VerifyResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/proto.ChannelService/GetChannel',
+            channel__pb2.GetChannelRequest.SerializeToString,
+            channel__pb2.GetChannelResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

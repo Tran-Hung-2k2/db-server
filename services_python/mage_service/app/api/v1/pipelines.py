@@ -12,8 +12,10 @@ router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 
 # ROUTES FOR PIPELINES
 
-@router.get("/"
-# , dependencies=[Depends(middlewares.verify_all)]
+
+@router.get(
+    "/"
+    # , dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_all_pipelines(
     request: Request,
@@ -22,11 +24,13 @@ async def get_all_pipelines(
 
     return ctl.get_all_pipelines(
         # db,
-         request)
+        request
+    )
 
 
-@router.get("/{uuid}"
-# , dependencies=[Depends(middlewares.verify_all)]
+@router.get(
+    "/{uuid}"
+    # , dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_one_pipeline(
     uuid: str,
@@ -36,11 +40,13 @@ async def get_one_pipeline(
     return ctl.get_one_pipeline(
         uuid,
         # db,
-        request)
+        request,
+    )
 
 
-@router.post("/"
-# , dependencies=[Depends(middlewares.verify_user)]
+@router.post(
+    "/"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_pipelines(
     request: Request,
@@ -54,8 +60,9 @@ async def create_pipelines(
     )
 
 
-@router.delete("/{uuid}"
-# , dependencies=[Depends(middlewares.verify_user)]
+@router.delete(
+    "/{uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def delete_one_pipeline(
     request: Request,
@@ -65,12 +72,16 @@ async def delete_one_pipeline(
     return ctl.delete_one_pipeline(
         # db,
         uuid,
-        request)
+        request,
+    )
+
 
 # ROUTES FOR BLOCKS
 
-@router.get("/{uuid}/blocks/{block_uuid}"
-# , dependencies=[Depends(middlewares.verify_all)]
+
+@router.get(
+    "/{uuid}/blocks/{block_uuid}"
+    # , dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_one_block(
     uuid: str,
@@ -82,11 +93,13 @@ async def get_one_block(
         uuid,
         block_uuid,
         # db,
-        request)
+        request,
+    )
 
 
-@router.post("/{uuid}/blocks/datasource"
-# , dependencies=[Depends(middlewares.verify_user)]
+@router.post(
+    "/{uuid}/blocks/datasource"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_data_source_block(
     uuid: str,
@@ -102,8 +115,9 @@ async def create_data_source_block(
     )
 
 
-@router.put("/{uuid}/blocks/{block_uuid}"
-# , dependencies=[Depends(middlewares.verify_user)]
+@router.put(
+    "/{uuid}/blocks/{block_uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def update_block(
     request: Request,
@@ -120,8 +134,10 @@ async def update_block(
         request,
     )
 
-@router.delete("/{uuid}/blocks/{block_uuid}"
-# , dependencies=[Depends(middlewares.verify_user)]
+
+@router.delete(
+    "/{uuid}/blocks/{block_uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def delete_one_block(
     request: Request,
@@ -133,13 +149,16 @@ async def delete_one_block(
         # db,
         uuid,
         block_uuid,
-        request)
+        request,
+    )
 
 
 # ROUTES FOR TRIGGER
 
-@router.get("/{uuid}/pipeline_schedules"
-# , dependencies=[Depends(middlewares.verify_all)]
+
+@router.get(
+    "/{uuid}/pipeline_schedules"
+    # , dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_all_pipeline_schedules(
     uuid: str,
@@ -149,10 +168,13 @@ async def get_all_pipeline_schedules(
     return ctl.get_all_pipeline_schedules(
         uuid,
         # db,
-        request)
+        request,
+    )
 
-@router.post("/{uuid}/pipeline_schedules"
-# , dependencies=[Depends(middlewares.verify_user)]
+
+@router.post(
+    "/{uuid}/pipeline_schedules"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_pipeline_schedules(
     request: Request,
@@ -165,8 +187,10 @@ async def create_pipeline_schedules(
         request,
     )
 
-@router.delete("/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
-# , dependencies=[Depends(middlewares.verify_user)]
+
+@router.delete(
+    "/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def delete_one_pipeline_schedules(
     request: Request,
@@ -178,4 +202,5 @@ async def delete_one_pipeline_schedules(
         # db,
         uuid,
         pipeline_schedules_uuid,
-        request)
+        request,
+    )

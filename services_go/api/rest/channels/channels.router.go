@@ -24,7 +24,7 @@ func InitRouter() *gin.Engine {
 	// Tạo nhóm route
 	v1 := r.Group(basePath)
 	{
-		v1.GET("/", middlewares.VerifyUser(), GetChannel)
+		v1.GET("/", middlewares.VerifyAll(), GetChannel)
 		v1.POST("/", middlewares.VerifyUser(), CreateChannel)
 		v1.PUT("/:id", middlewares.VerifyUser(), UpdateChannel)
 		v1.DELETE("/:id", middlewares.VerifyUser(), DeleteChannel)

@@ -13,7 +13,7 @@ RUN go mod download
 
 # Build the application
 # Adjust the path to where your main.go is located
-RUN cd cmd/users && CGO_ENABLED=0 GOOS=linux go build -o /app/main .
+RUN cd cmd/channels && CGO_ENABLED=0 GOOS=linux go build -o /app/main .
 
 # Stage 2: Create a minimal image with only the compiled binary
 FROM alpine:latest
