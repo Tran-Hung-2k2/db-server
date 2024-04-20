@@ -1,6 +1,7 @@
 nginx_local
 docker_images
-
+postgres
+minio
 db
 producer_kafka
 data
