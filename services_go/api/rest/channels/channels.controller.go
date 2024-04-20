@@ -54,7 +54,6 @@ func CreateChannel(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
 		return
 	}
-	fmt.Println(record)
 
 	ctx.JSON(http.StatusOK, gin.H{"data": record})
 }

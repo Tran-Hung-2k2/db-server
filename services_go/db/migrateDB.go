@@ -2,6 +2,7 @@ package db
 
 import (
 	"db-server/constants"
+	"db-server/utils"
 	"fmt"
 	"strings"
 )
@@ -31,5 +32,5 @@ func MigrateDB(models ...interface{}) {
 		DB.AutoMigrate(model)
 	}
 
-	fmt.Println("👍 Migration hoàn thành")
+	utils.Info.Println("👍 Migration hoàn thành")
 }

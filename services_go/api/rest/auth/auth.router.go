@@ -2,7 +2,7 @@ package auth
 
 import (
 	"db-server/docs"
-	"db-server/middlewares"
+	"db-server/validations"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -18,15 +18,14 @@ func InitRouter() *gin.Engine {
 
 	// Áp dụng middleware CORS vào router
 	r.Use(configCORSMiddleware())
-	r.Use(gin.CustomRecovery(middlewares.ErrorHandler))
 
 	basePath := "/api/auth"
 
 	// Tạo nhóm route
 	v1 := r.Group(basePath)
 	{
-		v1.POST("/signup", SignUp)
-		v1.POST("/signin", SignIn)
+		v1.POST("/signup", validations.SignUp(), SignUp)
+		v1.POST("/signin", validations.SignIn(), SignIn)
 		v1.POST("/logout", Logout)
 	}
 

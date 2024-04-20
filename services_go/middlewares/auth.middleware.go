@@ -59,37 +59,3 @@ func VerifyUser() gin.HandlerFunc {
 func VerifyAll() gin.HandlerFunc {
 	return VerifyRole([]string{"user", "admin"})
 }
-
-// func VerifyRole(roles []string) gin.HandlerFunc {
-// 	return func(ctx *gin.Context) {
-// 		accessToken, _ := ctx.Cookie("access_token")
-// 		data, err := utils.VerifyAccessToken(accessToken, []string{"id", "role"})
-
-// 		if err != nil {
-// 			ctx.JSON(http.StatusUnauthorized, gin.H{"message": "Xác thực thất bại do thông tin xác thất sai hoặc đã hết hạn."})
-// 			ctx.Abort()
-// 			return
-// 		}
-
-// 		// Kiểm tra xem role có nằm trong danh sách roles không
-// 		if !utils.Contains(data["role"], roles) {
-// 			ctx.JSON(http.StatusForbidden, gin.H{"message": "Bạn không có quyền truy cập tài nguyên này."})
-// 			ctx.Abort()
-// 			return
-// 		}
-
-// 		ctx.Next()
-// 	}
-// }
-
-// func VerifyAdmin() gin.HandlerFunc {
-// 	return VerifyRole([]string{"admin"})
-// }
-
-// func VerifyUser() gin.HandlerFunc {
-// 	return VerifyRole([]string{"user"})
-// }
-
-// func VerifyAll() gin.HandlerFunc {
-// 	return VerifyRole([]string{"user", "admin"})
-// }

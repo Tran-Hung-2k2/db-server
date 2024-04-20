@@ -3,7 +3,6 @@ package db
 import (
 	"db-server/utils"
 	"fmt"
-	"log"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -27,9 +26,10 @@ func ConnectToPostgres(models ...interface{}) {
 	// Kết nối tới cơ sở dữ liệu
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Kết nối database thất bại")
+		utils.Warning.Println("Kết nối database thất bại")
+		return
 	}
-	fmt.Println("🚀 Kết nối database thành công")
+	utils.Info.Println("🚀 Kết nối database thành công")
 
 	DB = db
 

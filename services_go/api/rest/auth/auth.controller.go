@@ -4,52 +4,68 @@ import (
 	"db-server/constants"
 	"db-server/db"
 	"db-server/models"
+	"db-server/schemas"
 	"db-server/utils"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/copier"
+	"gorm.io/gorm"
 )
 
 // Hàm SignUp xử lý việc đăng ký tài khoản
 func SignUp(ctx *gin.Context) {
-	var user models.User
-
-	// Kiểm tra và bind dữ liệu từ request body vào biến user
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin đăng ký không hợp lệ."})
+	// Get the validated data from the context and perform a type assertion
+	var data models.User
+	if err := utils.GetDataFromRequest(ctx, &data); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}
 
-	user.Role = constants.User
+	data.Role = constants.User
 
-	// Mã hóa mật khẩu của user
-	user.HashPassword()
+	// Mã hóa mật khẩu của người dùng
+	data.HashPassword()
 
 	// Lưu user vào cơ sở dữ liệu
-	result := db.DB.Create(&user)
+	result := db.DB.Create(&data)
+
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		// Kiểm tra lỗi do vi phạm ràng buộc duy nhất của trường email
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Email đã được đăng ký tài khoản trước đó.", nil, ""))
+		} else {
+			ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
+		}
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "Đăng ký tài khoản thành công."})
+	// Tạo SignUpResponse từ user
+	var resData schemas.SignUpResponse
+	copier.Copy(&resData, &data)
+
+	ctx.JSON(http.StatusCreated, utils.MakeResponse("Đăng ký tài khoản thành công.", resData, ""))
 }
 
 // Hàm SignIn xử lý việc đăng nhập
 func SignIn(ctx *gin.Context) {
-	var user models.User
+	// Get the validated data from the context and perform a type assertion
 	var data models.User
-
-	// Kiểm tra và bind dữ liệu từ request body vào biến data
-	if err := ctx.ShouldBindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin đăng nhập không hợp lệ."})
+	if err := utils.GetDataFromRequest(ctx, &data); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}
 
+	var user models.User
 	// Tìm kiếm user trong cơ sở dữ liệu dựa trên email
 	result := db.DB.First(&user, "email = ?", data.Email)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Tài khoản hoặc mật khẩu không chính xác.", nil, ""))
+		} else {
+			ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
+		}
 		return
 	}
 
@@ -64,9 +80,12 @@ func SignIn(ctx *gin.Context) {
 		// Đặt access token vào cookie
 		ctx.SetCookie("access_token", token, 0, "/", "", false, true)
 
-		ctx.JSON(http.StatusOK, gin.H{"message": "Đăng nhập thành công.", "data": user})
+		var resData schemas.SignInResponse
+		copier.Copy(&resData, &user)
+
+		ctx.JSON(http.StatusOK, utils.MakeResponse("Đăng nhập thành công.", resData, ""))
 	} else {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Tài khoản hoặc mật khẩu không chính xác."})
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Tài khoản hoặc mật khẩu không chính xác.", nil, ""))
 	}
 }
 
@@ -75,5 +94,5 @@ func Logout(ctx *gin.Context) {
 	// Xóa cookie access_token
 	ctx.SetCookie("access_token", "", -1, "/", "", false, true)
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Đăng xuất thành công."})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Đăng xuất thành công.", nil, ""))
 }

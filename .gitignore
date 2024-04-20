@@ -1,6 +1,8 @@
 nginx_local
-minio
 docker_images
+
+db
+producer_kafka
 data
 .vscode
 env
@@ -8,4 +10,5 @@ __pycache__
 *.csv
 *.zip
 *.tar
+
 
