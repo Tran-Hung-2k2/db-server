@@ -22,11 +22,14 @@ func (server *AuthServiceServer) VerifyRole(ctx context.Context, req *pb.VerifyR
 
 	data, err := utils.VerifyAccessToken(accessToken, []string{"id", "role"})
 	if err != nil {
+		utils.Error.Println(err)
+		utils.Info.Println("Xác thực thất bại do thông tin xác thất sai hoặc đã hết hạn.")
 		return nil, status.Errorf(codes.Unauthenticated, "Xác thực thất bại do thông tin xác thất sai hoặc đã hết hạn.")
 	}
 
 	// Kiểm tra xem role có nằm trong danh sách roles không
 	if !utils.Contains(data["role"], roles) {
+		utils.Info.Println("Bạn không có quyền truy cập vào tài nguyên này.")
 		return nil, status.Errorf(codes.PermissionDenied, "Bạn không có quyền truy cập vào tài nguyên này.")
 	}
 

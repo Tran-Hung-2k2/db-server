@@ -25,7 +25,7 @@ func InitRouter() *gin.Engine {
 	v1 := r.Group(basePath)
 	{
 		v1.POST("/signup", validations.SignUp(), SignUp)
-		v1.POST("/signin", validations.SignIn(), SignIn)
+		v1.POST("/signin",  SignIn)
 		v1.POST("/logout", Logout)
 	}
 

@@ -18,7 +18,7 @@ import (
 func SignUp(ctx *gin.Context) {
 	// Get the validated data from the context and perform a type assertion
 	var data models.User
-	if err := utils.GetDataFromRequest(ctx, &data); err != nil {
+	if err := utils.GetBodyData(ctx, &data); err != nil {
 		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}
@@ -52,7 +52,7 @@ func SignUp(ctx *gin.Context) {
 func SignIn(ctx *gin.Context) {
 	// Get the validated data from the context and perform a type assertion
 	var data models.User
-	if err := utils.GetDataFromRequest(ctx, &data); err != nil {
+	if err := utils.GetBodyData(ctx, &data); err != nil {
 		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}

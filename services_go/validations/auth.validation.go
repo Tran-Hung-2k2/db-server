@@ -14,7 +14,7 @@ func SignUp() gin.HandlerFunc {
 		}
 
 		// Validate the data
-		if err := BaseValidation(ctx, &schemas.SignUpRequest{}, errorMessages); err != nil {
+		if err := BodyValidation(ctx, &schemas.SignUpRequest{}, errorMessages); err != nil {
 			ctx.Abort()
 			return
 		}
@@ -31,7 +31,7 @@ func SignIn() gin.HandlerFunc {
 		}
 
 		// Validate the data
-		if err := BaseValidation(ctx, &schemas.SignInRequest{}, errorMessages); err != nil {
+		if err := BodyValidation(ctx, &schemas.SignInRequest{}, errorMessages); err != nil {
 			ctx.Abort()
 			return
 		}

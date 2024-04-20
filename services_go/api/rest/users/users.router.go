@@ -3,6 +3,7 @@ package users
 import (
 	"db-server/docs"
 	"db-server/middlewares"
+	"db-server/validations"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -24,9 +25,7 @@ func InitRouter() *gin.Engine {
 	// Tạo nhóm route
 	v1 := r.Group(basePath)
 	{
-		v1.GET("/", middlewares.VerifyAdmin(), GetUser)
-		v1.POST("/", middlewares.VerifyAdmin(), CreateUser)
-		v1.PUT("/:id", middlewares.VerifyAdmin(), UpdateUser)
+		v1.GET("/", validations.GetUser(), middlewares.VerifyAdmin(), GetUser)
 		v1.DELETE("/:id", middlewares.VerifyAdmin(), DeleteUser)
 	}
 

@@ -1,15 +1,15 @@
-nginx_local
-docker_images
-postgres
-minio
-db
-producer_kafka
-data
 .vscode
 env
+data
+minio
+postgres
+nginx_local
+docker_images
+producer_kafka
 __pycache__
 *.csv
 *.zip
+*.rar
 *.tar
 
 

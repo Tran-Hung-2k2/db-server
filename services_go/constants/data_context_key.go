@@ -1,5 +1,6 @@
 package constants
 
 const (
-	DATA_CTX_KEY string = "validData" // DATA_CTX_KEY is the key to store the validated data in the context
+	BODY_DATA_KEY  string = "body_data"  // Key to store the validated data in the context
+	QUERY_DATA_KEY string = "query_data" // Key to store the validated data in the context
 )

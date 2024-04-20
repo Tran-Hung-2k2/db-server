@@ -3,78 +3,40 @@ package users
 import (
 	"db-server/db"
 	"db-server/models"
-	"fmt"
+	"db-server/schemas"
+	"db-server/utils"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/copier"
 )
 
 func GetUser(ctx *gin.Context) {
 	// Khởi tạo truy vấn
-	query := db.DB
+	query, _ := utils.AddQueryData(ctx, db.DB)
 
-	// Mảng key của query parameters cần lọc
-	queryParams := []string{"id", "email", "role"}
+	// Get limit and skip from query parameters
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "10"))
+	skip, _ := strconv.Atoi(ctx.DefaultQuery("skip", "0"))
 
-	// Thêm điều kiện vào truy vấn nếu giá trị không rỗng
-	for _, key := range queryParams {
-		value := ctx.Query(key)
-		if value != "" {
-			query = query.Where(fmt.Sprintf("%s = ?", key), value)
-		}
-	}
+	// Get total count
+	var total int64
+	query.Model(&models.User{}).Count(&total)
 
 	// Thực hiện truy vấn để lấy danh sách người dùng
 	var users []models.User
-	result := query.Find(&users)
+	result := query.Limit(limit).Offset(skip).Find(&users)
 
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"data": users})
-}
+	var resData []schemas.GetUserResponse
+	copier.Copy(&resData, &users)
 
-func CreateUser(ctx *gin.Context) {
-	var user models.User
-
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin yêu cầu không hợp lệ."})
-		return
-	}
-
-	// Mã hóa mật khẩu của user
-	user.HashPassword()
-
-	result := db.DB.Create(&user)
-	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"data": user})
-}
-
-func UpdateUser(ctx *gin.Context) {
-	id := ctx.Param("id")
-
-	var updatedUser models.User
-
-	if err := ctx.ShouldBindJSON(&updatedUser); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin yêu cầu không hợp lệ."})
-		return
-	}
-
-	// Cập nhật chỉ các trường cần thiết
-	result := db.DB.Model(&models.User{}).Where("id = ?", id).Select("Name", "Password").Updates(&updatedUser)
-
-	if result.Error != nil || result.RowsAffected == 0 {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Không tìm thấy người dùng."})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "Cập nhật thông tin người dùng thành công"})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách người dùng thành công.", gin.H{"data": resData, "limit": limit, "skip": skip, "total": total}, ""))
 }
 
 func DeleteUser(ctx *gin.Context) {
@@ -83,9 +45,9 @@ func DeleteUser(ctx *gin.Context) {
 	result := db.DB.Where("id = ?", id).Delete(&models.User{})
 
 	if result.Error != nil || result.RowsAffected == 0 {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Không tìm thấy người dùng."})
+		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy người dùng.", nil, ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Xóa người dùng thành công"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Xóa người dùng thành công."})
 }
