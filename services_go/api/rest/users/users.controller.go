@@ -44,10 +44,13 @@ func DeleteUser(ctx *gin.Context) {
 
 	result := db.DB.Where("id = ?", id).Delete(&models.User{})
 
-	if result.Error != nil || result.RowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy người dùng.", nil, ""))
+		return
+	} else if result.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Xóa người dùng thành công."})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Xóa người dùng thành công.", nil, ""))
 }
