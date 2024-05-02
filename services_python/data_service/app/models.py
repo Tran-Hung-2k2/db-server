@@ -18,8 +18,8 @@ class Base(declarative_base(), SerializerMixin):
     )
 
 
-class Dataset(Base):
-    __tablename__ = "datasets"
+class Datamart(Base):
+    __tablename__ = "datamarts"
 
     user_id = db.Column(UUID(as_uuid=True), nullable=False)
     name = db.Column(db.String, nullable=False)

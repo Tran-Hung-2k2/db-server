@@ -50,12 +50,12 @@ async def get_one_pipeline(
 )
 async def create_pipelines(
     request: Request,
-    # data: schemas.DatasetCreate,
+    data: schemas.DatasetCreate,
     # db: Session = Depends(get_session),
 ):
     return ctl.create_pipelines(
         # db,
-        # data,
+        data,
         request,
     )
 

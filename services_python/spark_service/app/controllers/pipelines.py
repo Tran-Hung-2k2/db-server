@@ -2,7 +2,7 @@ import os
 from sqlalchemy.orm import Session
 from fastapi import status, Request, UploadFile
 from fastapi.responses import JSONResponse
-import json
+
 from services_python.data_service.app.models import Dataset
 import services_python.data_service.app.schemas.datamarts as schemas
 from services_python.utils.exception import MyException
@@ -30,46 +30,20 @@ def get_all_pipelines(
     # db: Session,
     request: Request,
 ):
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines"   # _limit=30&_offset=0
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
 
-    # for pipeline in data_dict["pipelines"]:
-    #     print("Pipeline:", pipeline["name"])
-    #     print("Blocks:")
-    #     for block in pipeline["blocks"]:
-    #         print("- ", block["name"])
-    #     print()
-
-    extracted_data = {
-        "pipelines": [],
-        "metadata": {
-            "count": data_dict["metadata"]["count"]
-        }
-    }
-
-    # Iterate over each pipeline and extract required fields
     for pipeline in data_dict["pipelines"]:
-        extracted_pipeline = {
-            "created_at": pipeline.get("created_at"),
-            "updated_at": pipeline.get("updated_at"),
-            "description": pipeline.get("description"),
-            "name": pipeline.get("name"),
-            "settings": pipeline.get("settings"),
-            "tags": pipeline.get("tags"),
-            "type": pipeline.get("type"),
-            "uuid": pipeline.get("uuid"),
-            "variables_dir": pipeline.get("variables_dir"),
-            "blocks_number": len(pipeline.get("blocks", [])),
-            "schedules_number": len(pipeline.get("schedules", []))
-        }
-        extracted_data["pipelines"].append(extracted_pipeline)
-
-    extracted_json = json.dumps(extracted_data)
+        print("Pipeline:", pipeline["name"])
+        print("Blocks:")
+        for block in pipeline["blocks"]:
+            print("- ", block["name"])
+        print()
 
     return JSONResponse(
-        content=extracted_json,
+        content=data_dict,
         status_code=status.HTTP_200_OK,
     )
 
@@ -113,21 +87,19 @@ def create_pipelines(
     data = request.json()
     name = data.get("name")
     type = data.get("type")
-    tags = data.get("tags")
-    description = data.get("description")
-
-    if not name or not type:
-        return JSONResponse(
-            content={"error": "Name and type are required fields."},
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
+    clone_pipeline_uuid = data.get("clone_pipeline_uuid")
+    extensions = data.get("extensions")
+    callbacks = data.get("callbacks")
+    conditionals = data.get("conditionals")
 
     extracted_info = {
         "pipeline": {
             "name": name,
             "type": type,
-            "tags": tags,
-            "description": description
+            "clone_pipeline_uuid": clone_pipeline_uuid,
+            "extensions": extensions,
+            "callbacks": callbacks,
+            "conditionals": conditionals,
         }
     }
 
@@ -135,27 +107,9 @@ def create_pipelines(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=extracted_info, headers=headers)
     data_dict = response.json()
-    pipeline=data_dict["pipeline"]
-    extracted_pipeline = {
-        "created_at": pipeline.get("created_at"),
-        "updated_at": pipeline.get("updated_at"),
-        "description": pipeline.get("description"),
-        "name": pipeline.get("name"),
-        "settings": pipeline.get("settings"),
-        "tags": pipeline.get("tags"),
-        "type": pipeline.get("type"),
-        "uuid": pipeline.get("uuid"),
-        "variables_dir": pipeline.get("variables_dir"),
-        "blocks_number": len(pipeline.get("blocks", [])),
-        "schedules_number": len(pipeline.get("schedules", []))
-    }
-    extracted_data = {
-        "pipelines": extracted_pipeline,
-        "metadata": None
-    }
-    extracted_json = json.dumps(extracted_data)
+
     return JSONResponse(
-        content=extracted_json,
+        content=data_dict,
         status_code=status.HTTP_200_OK,
     )
 
@@ -170,27 +124,8 @@ def delete_one_pipeline(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
-    pipeline=data_dict["pipeline"]
-    extracted_pipeline = {
-        "created_at": pipeline.get("created_at"),
-        "updated_at": pipeline.get("updated_at"),
-        "description": pipeline.get("description"),
-        "name": pipeline.get("name"),
-        "settings": pipeline.get("settings"),
-        "tags": pipeline.get("tags"),
-        "type": pipeline.get("type"),
-        "uuid": pipeline.get("uuid"),
-        "variables_dir": pipeline.get("variables_dir"),
-        "blocks_number": len(pipeline.get("blocks", [])),
-        "schedules_number": len(pipeline.get("schedules", []))
-    }
-    extracted_data = {
-        "pipelines": extracted_pipeline,
-        "metadata": None
-    }
-    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=extracted_json,
+        content=data_dict,
         status_code=status.HTTP_200_OK,
     )
 
@@ -221,6 +156,7 @@ def get_data_source_block_content(type, config):
             get_string,
             check_config_keys,
         )
+
         if check_config_keys(config):
             return get_string(config)
     elif type == "mysql":
@@ -244,6 +180,13 @@ def create_data_source_block(
     block_type = data.get("type")
     code_config = data.get("config")
     content = get_data_source_block_content(block_type, code_config)
+    # color = data.get("color")
+    # configuration = data.get("configuration")
+    # extension_uuid = data.get("extension_uuid")
+    # pipelines = data.get("pipelines")
+    # priority = data.get("priority")
+    # upstream_blocks = data.get("upstream_blocks")
+    # block_uuid = data.get("block_uuid") #                 Optional
     language = "python"
     type = "data_loader"
     extracted_info = {
@@ -259,6 +202,7 @@ def create_data_source_block(
             # "pipelines": pipelines,
             # "priority": priority,
             # "upstream_blocks": upstream_blocks
+            # "uuid": block_uuid
         }
     }
 
@@ -266,13 +210,16 @@ def create_data_source_block(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=extracted_info, headers=headers)
     data_dict = response.json()
+    data_dict = response.json()
     return JSONResponse(
         content=data_dict,
         status_code=status.HTTP_200_OK,
     )
 
 
-@handle_database_errors
+handle_database_errors
+
+
 def update_block(
     uuid: str,
     block_uuid: str,
@@ -282,28 +229,41 @@ def update_block(
     data = request.json()
     name = data.get("name")
     block_type = data.get("type")
+    bookmark_values = data.get("bookmark_values")
+    callback_blocks = data.get("callback_blocks")
+    color = data.get("color")
+    configuration = data.get("configuration")
     content = data.get("content")
+    destination_table = data.get("destination_table")
     downstream_blocks = data.get("downstream_blocks")
+    executor_config = data.get("executor_config")
+    executor_type = data.get("executor_type")
+    extension_uuid = data.get("extension_uuid")
+    language = data.get("language")
+    pipelines = data.get("pipelines")
+    retry_config = data.get("retry_config")
+    tap_stream_id = data.get("tap_stream_id")
     upstream_blocks = data.get("upstream_blocks")
+
     updated_block = {
         "block": {
             "name": name,
             "type": block_type,
+            "bookmark_values": bookmark_values,
+            "callback_blocks": callback_blocks,
+            "color": color,
+            "configuration": configuration,
             "content": content,
+            "destination_table": destination_table,
             "downstream_blocks": downstream_blocks,
+            "executor_config": executor_config,
+            "executor_type": executor_type,
+            "extension_uuid": extension_uuid,
+            "language": language,
+            "pipelines": pipelines,
+            "retry_config": retry_config,
+            "tap_stream_id": tap_stream_id,
             "upstream_blocks": upstream_blocks,
-            # "bookmark_values": bookmark_values,
-            # "callback_blocks": callback_blocks,
-            # "color": color,
-            # "configuration": configuration,
-            # "destination_table": destination_table,
-            # "executor_config": executor_config,
-            # "executor_type": executor_type,
-            # "extension_uuid": extension_uuid,
-            # "language": language,
-            # "pipelines": pipelines,
-            # "retry_config": retry_config,
-            # "tap_stream_id": tap_stream_id,
         }
     }
 
