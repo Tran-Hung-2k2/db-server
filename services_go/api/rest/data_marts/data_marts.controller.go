@@ -1,8 +1,10 @@
 package users
 
 import (
+	"db-server/constants"
 	"db-server/db"
 	"db-server/models"
+	"db-server/utils"
 	"errors"
 	"fmt"
 	"net/http"
@@ -47,7 +49,7 @@ func CreateDataMart(ctx *gin.Context) {
 		return
 	}
 
-	record.UserID = uuid.FromStringOrNil(ctx.GetString("id"))
+	record.UserID = uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY))
 
 	result := db.DB.Create(&record)
 	if result.Error != nil {
@@ -80,7 +82,7 @@ func UpdateDataMart(ctx *gin.Context) {
 		return
 	}
 
-	if existingRecord.UserID != uuid.FromStringOrNil(ctx.GetString("id")) {
+	if existingRecord.UserID != uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY)) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Bạn không có quyền truy cập tài nguyên này."})
 		return
 	}
@@ -94,12 +96,15 @@ func UpdateDataMart(ctx *gin.Context) {
 func DeleteDataMart(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	result := db.DB.Where("id = ?", id).Delete(&models.DataMart{})
+	result := db.DB.Where("id = ?", id).Delete(&models.User{})
 
-	if result.Error != nil || result.RowsAffected == 0 {
-		ctx.JSON(http.StatusNotFound, gin.H{"message": "Không tìm thấy data mart."})
+	if result.RowsAffected == 0 {
+		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy data mart.", nil, ""))
+		return
+	} else if result.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Xóa data mart thành công"})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Xóa data mart thành công.", nil, ""))
 }

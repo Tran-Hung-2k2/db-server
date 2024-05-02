@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    box-sizing: border-box;
+}
+
+:root {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    color-scheme: light dark;
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}

@@ -12,12 +12,14 @@ import (
 	"github.com/jinzhu/copier"
 )
 
+var LIMIT_RECORD = utils.GetEnv("LIMIT_RECORD", "50")
+
 func GetUser(ctx *gin.Context) {
 	// Khởi tạo truy vấn
-	query, _ := utils.AddQueryData(ctx, db.DB)
+	query, _ := utils.AddQueryData(ctx, db.DB, map[string]interface{}{})
 
 	// Get limit and skip from query parameters
-	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "10"))
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", LIMIT_RECORD))
 	skip, _ := strconv.Atoi(ctx.DefaultQuery("skip", "0"))
 
 	// Get total count

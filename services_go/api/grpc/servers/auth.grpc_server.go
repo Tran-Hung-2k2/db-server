@@ -19,10 +19,10 @@ type AuthServiceServer struct {
 func (server *AuthServiceServer) VerifyRole(ctx context.Context, req *pb.VerifyRequest) (*pb.VerifyResponse, error) {
 	accessToken := req.GetToken()
 	roles := req.GetRoles()
+	// utils.Info.Println(accessToken)
 
 	data, err := utils.VerifyAccessToken(accessToken, []string{"id", "role"})
 	if err != nil {
-		utils.Error.Println(err)
 		utils.Info.Println("Xác thực thất bại do thông tin xác thất sai hoặc đã hết hạn.")
 		return nil, status.Errorf(codes.Unauthenticated, "Xác thực thất bại do thông tin xác thất sai hoặc đã hết hạn.")
 	}

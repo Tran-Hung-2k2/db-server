@@ -9,16 +9,16 @@ import (
 type ChannelType string
 
 const (
-	API              ChannelType = "API"
 	MySQL            ChannelType = "MySQL"
 	PostgreSQL       ChannelType = "PostgreSQL"
 	MongoDB          ChannelType = "MongoDB"
 	MinIO            ChannelType = "MinIO"
-	Snowflake        ChannelType = "Snowflake"
 	AmazonS3         ChannelType = "Amazon S3"
+	Snowflake        ChannelType = "Snowflake"
 	OracleDB         ChannelType = "Oracle DB"
 	AzureBlobStorage ChannelType = "Azure Blob Storage"
 	GoogleBigQuery   ChannelType = "Google Big Query"
+	API              ChannelType = "API"
 	UploadFile       ChannelType = "Upload File"
 )
 

@@ -8,6 +8,7 @@ import (
 	"db-server/utils"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/copier"
@@ -16,6 +17,13 @@ import (
 
 // Hàm SignUp xử lý việc đăng ký tài khoản
 func SignUp(ctx *gin.Context) {
+	var data_schema schemas.SignUpRequest
+	utils.GetBodyData(ctx, &data_schema)
+	if data_schema.Confirm_Password != data_schema.Password {
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Mật khẩu xác nhận không chính xác.", nil, ""))
+		return
+	}
+
 	// Get the validated data from the context and perform a type assertion
 	var data models.User
 	if err := utils.GetBodyData(ctx, &data); err != nil {
@@ -33,7 +41,7 @@ func SignUp(ctx *gin.Context) {
 
 	if result.Error != nil {
 		// Kiểm tra lỗi do vi phạm ràng buộc duy nhất của trường email
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+		if strings.Contains(result.Error.Error(), "uni_users_email") {
 			ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Email đã được đăng ký tài khoản trước đó.", nil, ""))
 		} else {
 			ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
@@ -78,7 +86,8 @@ func SignIn(ctx *gin.Context) {
 		})
 
 		// Đặt access token vào cookie
-		ctx.SetCookie("access_token", token, 0, "/", "", false, true)
+		// ctx.SetSameSite(http.SameSiteNoneMode)
+		ctx.SetCookie(constants.ACCESS_TOKEN_KEY, token, 3*24*60*60, "/", "", true, true)
 
 		var resData schemas.SignInResponse
 		copier.Copy(&resData, &user)
@@ -92,7 +101,7 @@ func SignIn(ctx *gin.Context) {
 // Hàm Logout xử lý việc đăng xuất
 func Logout(ctx *gin.Context) {
 	// Xóa cookie access_token
-	ctx.SetCookie("access_token", "", -1, "/", "", false, true)
+	ctx.SetCookie(constants.ACCESS_TOKEN_KEY, "", -1, "/", "", false, true)
 
 	ctx.JSON(http.StatusOK, utils.MakeResponse("Đăng xuất thành công.", nil, ""))
 }

@@ -3,7 +3,9 @@ package middlewares
 import (
 	"context"
 	grpc_clients "db-server/api/grpc/clients"
+	"db-server/constants"
 	"db-server/pb"
+	"db-server/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,11 +15,14 @@ import (
 
 func VerifyRole(roles []string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		accessToken, _ := ctx.Cookie("access_token")
+		accessToken, _ := ctx.Cookie(constants.ACCESS_TOKEN_KEY)
+		// utils.Info.Println(accessToken)
 
 		response, err := grpc_clients.AuthGRPCClient.VerifyRole(context.Background(), &pb.VerifyRequest{Token: accessToken, Roles: roles})
 
 		if err != nil {
+			utils.Error.Println(err)
+
 			// Kiểm tra xem lỗi có phải là lỗi của gRPC không
 			if st, ok := status.FromError(err); ok {
 				// Lấy mã lỗi và thông báo
@@ -40,8 +45,8 @@ func VerifyRole(roles []string) gin.HandlerFunc {
 		}
 
 		// Đặt dữ liệu vào Context
-		ctx.Set("id", response.Data["id"])
-		ctx.Set("role", response.Data["role"])
+		ctx.Set(constants.USER_ID_KEY, response.Data["id"])
+		ctx.Set(constants.USER_ROLE_KEY, response.Data["role"])
 
 		// Tiếp tục xử lý ở các middleware và controller tiếp theo
 		ctx.Next()

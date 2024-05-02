@@ -6,9 +6,10 @@ import (
 )
 
 type SignUpRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+	Name             string `json:"name" validate:"required"`
+	Email            string `json:"email" validate:"required,email"`
+	Password         string `json:"password" validate:"required"`
+	Confirm_Password string `json:"confirm_password" validate:"required"`
 }
 
 type SignUpResponse struct {

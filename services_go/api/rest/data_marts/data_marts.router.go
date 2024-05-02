@@ -3,8 +3,8 @@ package users
 import (
 	"db-server/docs"
 	"db-server/middlewares"
+	"db-server/utils"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -17,7 +17,7 @@ func InitRouter() *gin.Engine {
 	r := gin.Default()
 
 	// Áp dụng middleware CORS vào router
-	r.Use(configCORSMiddleware())
+	r.Use(utils.ConfigCORSMiddleware())
 
 	basePath := "/api/data_marts"
 
@@ -26,7 +26,7 @@ func InitRouter() *gin.Engine {
 	{
 		v1.GET("/", middlewares.VerifyAll(), GetDataMart)
 		v1.POST("/", middlewares.VerifyUser(), CreateDataMart)
-		v1.PUT("/:id", middlewares.VerifyUser(), UpdateDataMart)
+		v1.PATCH("/:id", middlewares.VerifyUser(), UpdateDataMart)
 		v1.DELETE("/:id", middlewares.VerifyUser(), DeleteDataMart)
 	}
 
@@ -35,13 +35,4 @@ func InitRouter() *gin.Engine {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
-}
-
-func configCORSMiddleware() gin.HandlerFunc {
-	// Cấu hình middleware CORS
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowMethods = []string{"GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type"}
-	return cors.New(config)
 }

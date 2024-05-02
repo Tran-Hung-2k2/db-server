@@ -3,9 +3,9 @@ package users
 import (
 	"db-server/docs"
 	"db-server/middlewares"
+	"db-server/utils"
 	"db-server/validations"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -18,7 +18,7 @@ func InitRouter() *gin.Engine {
 	r := gin.Default()
 
 	// Áp dụng middleware CORS vào router
-	r.Use(configCORSMiddleware())
+	r.Use(utils.ConfigCORSMiddleware())
 
 	basePath := "/api/users"
 
@@ -34,13 +34,4 @@ func InitRouter() *gin.Engine {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
-}
-
-func configCORSMiddleware() gin.HandlerFunc {
-	// Cấu hình middleware CORS
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowMethods = []string{"GET", "POST", "OPTIONS", "PATCH", "DELETE", "PUT"}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type"}
-	return cors.New(config)
 }

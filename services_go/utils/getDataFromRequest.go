@@ -26,7 +26,7 @@ func GetBodyData(ctx *gin.Context, data interface{}) error {
 	return nil
 }
 
-func AddQueryData(ctx *gin.Context, query *gorm.DB) (*gorm.DB, error) {
+func AddQueryData(ctx *gin.Context, query *gorm.DB, customParams map[string]interface{}) (*gorm.DB, error) {
 	queryParams, exists := ctx.Get(constants.QUERY_DATA_KEY)
 	if !exists {
 		return nil, errors.New("not found valid data in context")
@@ -41,6 +41,13 @@ func AddQueryData(ctx *gin.Context, query *gorm.DB) (*gorm.DB, error) {
 
 		if value.Interface() != nil && value.Interface() != "" {
 			query = query.Where(fmt.Sprintf("%s = ?", field.Name), value.Interface())
+		}
+	}
+
+	// Thêm các param query tùy chỉnh
+	for key, value := range customParams {
+		if value != nil && value != "" {
+			query = query.Where(fmt.Sprintf("%s = ?", key), value)
 		}
 	}
 

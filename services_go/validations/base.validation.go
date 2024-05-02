@@ -14,7 +14,7 @@ import (
 )
 
 func BodyValidation(ctx *gin.Context, data interface{}, errorMessages map[string]string) error {
-	resMessage := ""
+	resMessage := "Định dạng dữ liệu không hợp lệ."
 
 	// Kiểm tra và bind dữ liệu từ request body vào biến data
 	if err := ctx.ShouldBindJSON(data); err != nil {
@@ -23,8 +23,6 @@ func BodyValidation(ctx *gin.Context, data interface{}, errorMessages map[string
 		for tag, message := range errorMessages {
 			if strings.Contains(err.Error(), tag) {
 				resMessage = message
-			} else {
-				resMessage = "Định dạng dữ liệu không hợp lệ."
 			}
 		}
 
@@ -43,7 +41,7 @@ func BodyValidation(ctx *gin.Context, data interface{}, errorMessages map[string
 }
 
 func QueryValidation(ctx *gin.Context, data interface{}, errorMessages map[string]string) error {
-	resMessage := ""
+	resMessage := "Định dạng dữ liệu không hợp lệ."
 
 	// Kiểm tra và bind dữ liệu từ request query vào biến data
 	if err := ctx.ShouldBindQuery(data); err != nil {
@@ -52,8 +50,6 @@ func QueryValidation(ctx *gin.Context, data interface{}, errorMessages map[strin
 		for tag, message := range errorMessages {
 			if strings.Contains(err.Error(), tag) {
 				resMessage = message
-			} else {
-				resMessage = "Định dạng dữ liệu không hợp lệ."
 			}
 		}
 
@@ -72,7 +68,7 @@ func QueryValidation(ctx *gin.Context, data interface{}, errorMessages map[strin
 }
 
 func BaseValidation(ctx *gin.Context, data interface{}, errorMessages map[string]string) error {
-	resMessage := ""
+	resMessage := "Định dạng dữ liệu không hợp lệ."
 
 	// Create a new validator instance
 	validate := validator.New()
@@ -100,15 +96,14 @@ func BaseValidation(ctx *gin.Context, data interface{}, errorMessages map[string
 		utils.Error.Println(errors.Error())
 
 		// Check if the error message contains any of the specified tags
+		if strings.Contains(errors.Error(), "'required' tag") {
+			resMessage = translatedErrors[0]
+		} else if strings.Contains(errors.Error(), "'uuid4' tag") {
+			resMessage = translatedErrors[0]
+		}
 		for tag, message := range errorMessages {
 			if strings.Contains(errors.Error(), tag) {
 				resMessage = message
-			} else if strings.Contains(errors.Error(), "'required' tag") {
-				resMessage = translatedErrors[0]
-			} else if strings.Contains(errors.Error(), "'uuid4' tag") {
-				resMessage = translatedErrors[0]
-			} else {
-				resMessage = "Định dạng dữ liệu không hợp lệ."
 			}
 		}
 
