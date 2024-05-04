@@ -2,9 +2,9 @@ import os
 from sqlalchemy.orm import Session
 from fastapi import status, Request, UploadFile
 from fastapi.responses import JSONResponse
-
+import json
 from services_python.data_service.app.models import Dataset
-import services_python.data_service.app.schemas.datasets as schemas
+import services_python.data_service.app.schemas.datamarts as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
@@ -30,20 +30,45 @@ def get_all_pipelines(
     # db: Session,
     request: Request,
 ):
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines"   # _limit=30&_offset=0
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
 
+    # for pipeline in data_dict["pipelines"]:
+    #     print("Pipeline:", pipeline["name"])
+    #     print("Blocks:")
+    #     for block in pipeline["blocks"]:
+    #         print("- ", block["name"])
+    #     print()
+
+    extracted_data = {
+        "pipelines": [],
+        "metadata": {
+            "count": data_dict["metadata"]["count"]
+        }
+    }
+
+    # Iterate over each pipeline and extract required fields
     for pipeline in data_dict["pipelines"]:
-        print("Pipeline:", pipeline["name"])
-        print("Blocks:")
-        for block in pipeline["blocks"]:
-            print("- ", block["name"])
-        print()
+        extracted_pipeline = {
+            "created_at": pipeline.get("created_at"),
+            "updated_at": pipeline.get("updated_at"),
+            "description": pipeline.get("description"),
+            "name": pipeline.get("name"),
+            "settings": pipeline.get("settings"),
+            "tags": pipeline.get("tags"),
+            "type": pipeline.get("type"),
+            "uuid": pipeline.get("uuid"),
+            "blocks_number": len(pipeline.get("blocks", [])),
+            "schedules_number": len(pipeline.get("schedules", []))
+        }
+        extracted_data["pipelines"].append(extracted_pipeline)
+
+    extracted_json = json.dumps(extracted_data)
 
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -58,22 +83,35 @@ def get_one_pipeline(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
-    pipeline_name = data_dict["pipeline"]["name"]
-    pipeline_blocks = data_dict["pipeline"]["blocks"]
-    pipeline_updated_at = data_dict["pipeline"]["updated_at"]
 
-    # Print extracted information
-    print("Pipeline Name:", pipeline_name)
-    print("Pipeline Updated At:", pipeline_updated_at)
-    print("Pipeline Blocks:")
-    for block in pipeline_blocks:
-        print("Block Name:", block["name"])
-        print("Block Type:", block["type"])
-        print("Block Status:", block["status"])
-        print("Block Content:", block["content"])
-        print("-----------")
+    extracted_data = {
+        "pipelines": {
+            "created_at": data_dict["pipeline"]["created_at"],
+            "updated_at": data_dict["pipeline"]["updated_at"],
+            "description": data_dict["pipeline"]["description"],
+            "name": data_dict["pipeline"]["name"],
+            "settings": data_dict["pipeline"]["settings"],
+            "tags": data_dict["pipeline"]["tags"],
+            "type": data_dict["pipeline"]["type"],
+            "uuid": data_dict["pipeline"]["uuid"],
+            "blocks": [{
+                "name": block["name"],
+                "downstream_blocks": block["downstream_blocks"],
+                "type": block["type"],
+                "upstream_blocks": block["upstream_blocks"],
+                "uuid": block["uuid"],
+                "status": block["status"],
+                "conditional_blocks": block["conditional_blocks"],
+                "callback_blocks": block["callback_blocks"],
+                "has_callback": block["has_callback"],
+                "retry_config": block["retry_config"]
+            } for block in data_dict["pipeline"]["blocks"]]
+        },
+        "metadata": data_dict["metadata"]
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -87,19 +125,21 @@ def create_pipelines(
     data = request.json()
     name = data.get("name")
     type = data.get("type")
-    clone_pipeline_uuid = data.get("clone_pipeline_uuid")
-    extensions = data.get("extensions")
-    callbacks = data.get("callbacks")
-    conditionals = data.get("conditionals")
+    tags = data.get("tags")
+    description = data.get("description")
+
+    if not name or not type:
+        return JSONResponse(
+            content={"error": "Name and type are required fields."},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     extracted_info = {
         "pipeline": {
             "name": name,
             "type": type,
-            "clone_pipeline_uuid": clone_pipeline_uuid,
-            "extensions": extensions,
-            "callbacks": callbacks,
-            "conditionals": conditionals,
+            "tags": tags,
+            "description": description
         }
     }
 
@@ -107,9 +147,27 @@ def create_pipelines(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=extracted_info, headers=headers)
     data_dict = response.json()
-
+    pipeline=data_dict["pipeline"]
+    extracted_pipeline = {
+        "created_at": pipeline.get("created_at"),
+        "updated_at": pipeline.get("updated_at"),
+        "description": pipeline.get("description"),
+        "name": pipeline.get("name"),
+        "settings": pipeline.get("settings"),
+        "tags": pipeline.get("tags"),
+        "type": pipeline.get("type"),
+        "uuid": pipeline.get("uuid"),
+        "variables_dir": pipeline.get("variables_dir"),
+        "blocks_number": len(pipeline.get("blocks", [])),
+        "schedules_number": len(pipeline.get("schedules", []))
+    }
+    extracted_data = {
+        "pipelines": extracted_pipeline,
+        "metadata": None
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -124,8 +182,27 @@ def delete_one_pipeline(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
+    pipeline=data_dict["pipeline"]
+    extracted_pipeline = {
+        "created_at": pipeline.get("created_at"),
+        "updated_at": pipeline.get("updated_at"),
+        "description": pipeline.get("description"),
+        "name": pipeline.get("name"),
+        "settings": pipeline.get("settings"),
+        "tags": pipeline.get("tags"),
+        "type": pipeline.get("type"),
+        "uuid": pipeline.get("uuid"),
+        "variables_dir": pipeline.get("variables_dir"),
+        "blocks_number": len(pipeline.get("blocks", [])),
+        "schedules_number": len(pipeline.get("schedules", []))
+    }
+    extracted_data = {
+        "pipelines": extracted_pipeline,
+        "metadata": None
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -144,8 +221,25 @@ def get_one_block(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
+    extracted_data = {
+        "blocks": {
+            "name": data_dict["block"]["name"],
+            "downstream_blocks": data_dict["block"]["downstream_blocks"],
+            "type": data_dict["block"]["type"],
+            "upstream_blocks": data_dict["block"]["upstream_blocks"],
+            "uuid": data_dict["block"]["uuid"],
+            "status": data_dict["block"]["status"],
+            # "conditional_blocks": [],
+            # "callback_blocks": [],
+            "has_callback": data_dict["block"]["has_callback"],
+            "retry_config": data_dict["block"]["retry_config"],
+            "content": data_dict["block"]["content"]
+        },
+        "metadata": data_dict["metadata"]
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -156,7 +250,6 @@ def get_data_source_block_content(type, config):
             get_string,
             check_config_keys,
         )
-
         if check_config_keys(config):
             return get_string(config)
     elif type == "mysql":
@@ -180,13 +273,6 @@ def create_data_source_block(
     block_type = data.get("type")
     code_config = data.get("config")
     content = get_data_source_block_content(block_type, code_config)
-    # color = data.get("color")
-    # configuration = data.get("configuration")
-    # extension_uuid = data.get("extension_uuid")
-    # pipelines = data.get("pipelines")
-    # priority = data.get("priority")
-    # upstream_blocks = data.get("upstream_blocks")
-    # block_uuid = data.get("block_uuid") #                 Optional
     language = "python"
     type = "data_loader"
     extracted_info = {
@@ -202,7 +288,6 @@ def create_data_source_block(
             # "pipelines": pipelines,
             # "priority": priority,
             # "upstream_blocks": upstream_blocks
-            # "uuid": block_uuid
         }
     }
 
@@ -210,16 +295,30 @@ def create_data_source_block(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=extracted_info, headers=headers)
     data_dict = response.json()
-    data_dict = response.json()
+    extracted_data = {
+        "blocks": {
+            "name": data_dict["block"]["name"],
+            "downstream_blocks": data_dict["block"]["downstream_blocks"],
+            "type": data_dict["block"]["type"],
+            "upstream_blocks": data_dict["block"]["upstream_blocks"],
+            "uuid": data_dict["block"]["uuid"],
+            "status": data_dict["block"]["status"],
+            # "conditional_blocks": [],
+            # "callback_blocks": [],
+            "has_callback": data_dict["block"]["has_callback"],
+            "retry_config": data_dict["block"]["retry_config"],
+            "content": data_dict["block"]["content"]
+        },
+        "metadata": data_dict["metadata"]
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
 
-handle_database_errors
-
-
+@handle_database_errors
 def update_block(
     uuid: str,
     block_uuid: str,
@@ -229,41 +328,36 @@ def update_block(
     data = request.json()
     name = data.get("name")
     block_type = data.get("type")
-    bookmark_values = data.get("bookmark_values")
-    callback_blocks = data.get("callback_blocks")
-    color = data.get("color")
-    configuration = data.get("configuration")
     content = data.get("content")
-    destination_table = data.get("destination_table")
     downstream_blocks = data.get("downstream_blocks")
-    executor_config = data.get("executor_config")
-    executor_type = data.get("executor_type")
-    extension_uuid = data.get("extension_uuid")
-    language = data.get("language")
-    pipelines = data.get("pipelines")
-    retry_config = data.get("retry_config")
-    tap_stream_id = data.get("tap_stream_id")
     upstream_blocks = data.get("upstream_blocks")
-
+    conditional_blocks = data.get("conditional_blocks")
+    callback_blocks = data.get("callback_blocks")
+    has_callback = data.get("has_callback")
+    retry_config = data.get("retry_config")
     updated_block = {
         "block": {
             "name": name,
             "type": block_type,
-            "bookmark_values": bookmark_values,
-            "callback_blocks": callback_blocks,
-            "color": color,
-            "configuration": configuration,
             "content": content,
-            "destination_table": destination_table,
             "downstream_blocks": downstream_blocks,
-            "executor_config": executor_config,
-            "executor_type": executor_type,
-            "extension_uuid": extension_uuid,
-            "language": language,
-            "pipelines": pipelines,
-            "retry_config": retry_config,
-            "tap_stream_id": tap_stream_id,
             "upstream_blocks": upstream_blocks,
+            "conditional_blocks": conditional_blocks,
+            "callback_blocks": callback_blocks,
+            "has_callback": has_callback,
+            "retry_config": retry_config,
+            # "bookmark_values": bookmark_values,
+            # "callback_blocks": callback_blocks,
+            # "color": color,
+            # "configuration": configuration,
+            # "destination_table": destination_table,
+            # "executor_config": executor_config,
+            # "executor_type": executor_type,
+            # "extension_uuid": extension_uuid,
+            # "language": language,
+            # "pipelines": pipelines,
+            # "retry_config": retry_config,
+            # "tap_stream_id": tap_stream_id,
         }
     }
 
@@ -271,8 +365,25 @@ def update_block(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.put(url, json=updated_block, headers=headers)
     data_dict = response.json()
+    extracted_data = {
+        "blocks": {
+            "name": data_dict["block"]["name"],
+            "downstream_blocks": data_dict["block"]["downstream_blocks"],
+            "type": data_dict["block"]["type"],
+            "upstream_blocks": data_dict["block"]["upstream_blocks"],
+            "uuid": data_dict["block"]["uuid"],
+            "status": data_dict["block"]["status"],
+            # "conditional_blocks": [],
+            # "callback_blocks": [],
+            "has_callback": data_dict["block"]["has_callback"],
+            "retry_config": data_dict["block"]["retry_config"],
+            "content": data_dict["block"]["content"]
+        },
+        "metadata": data_dict["metadata"]
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -288,14 +399,30 @@ def delete_one_block(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
+    extracted_data = {
+        "blocks": {
+            "name": data_dict["block"]["name"],
+            "downstream_blocks": data_dict["block"]["downstream_blocks"],
+            "type": data_dict["block"]["type"],
+            "upstream_blocks": data_dict["block"]["upstream_blocks"],
+            "uuid": data_dict["block"]["uuid"],
+            "status": data_dict["block"]["status"],
+            # "conditional_blocks": [],
+            # "callback_blocks": [],
+            "has_callback": data_dict["block"]["has_callback"],
+            "retry_config": data_dict["block"]["retry_config"],
+            "content": data_dict["block"]["content"]
+        },
+        "metadata": data_dict["metadata"]
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
 
 # HANDLE TRIGGERS
-
 
 @handle_database_errors
 def get_all_pipeline_schedules(
@@ -307,8 +434,38 @@ def get_all_pipeline_schedules(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
+    extracted_data = {
+        "pipeline_schedules": [
+            {
+                "created_at": schedule["created_at"],
+                "updated_at": schedule["updated_at"],
+                "description": schedule["description"],
+                "name": schedule["name"],
+                "settings": schedule["settings"],
+                "tags": schedule["tags"],
+                "id": schedule["id"],
+                "last_enabled_at": schedule["last_enabled_at"],
+                "pipeline_uuid": schedule["pipeline_uuid"],
+                "schedule_interval": schedule["schedule_interval"],
+                "schedule_type": schedule["schedule_type"],
+                "start_time": schedule["start_time"],
+                "status": schedule["status"],
+                "token": schedule["token"],
+                "variables": schedule["variables"],
+                "last_pipeline_run_status": schedule["last_pipeline_run_status"],
+                "next_pipeline_run_date": schedule["next_pipeline_run_date"],
+                "pipeline_in_progress_runs_count": schedule["pipeline_in_progress_runs_count"],
+                "pipeline_runs_count": schedule["pipeline_runs_count"]
+            }
+            for schedule in data_dict["pipeline_schedules"]
+        ],
+        "metadata": {
+            "count": data_dict["metadata"]["count"]
+        }
+    }
+    extracted_json = json.dumps(extracted_data)
     return JSONResponse(
-        content=data_dict,
+        content=extracted_json,
         status_code=status.HTTP_200_OK,
     )
 
@@ -325,11 +482,8 @@ def create_pipeline_schedules(
     schedule_interval = data.get("schedule_interval")
     schedule_type = data.get("schedule_type")
     settings = data.get("settings")
-    sla = data.get("sla")
     start_time = data.get("start_time")
-    my_status = data.get("status")
-    variables = data.get("variables")
-
+    tags = data.get("tags")
     pipeline_schedule = {
         "pipeline_schedule": {
             "name": name,
@@ -337,10 +491,8 @@ def create_pipeline_schedules(
             "schedule_interval": schedule_interval,
             "schedule_type": schedule_type,
             "settings": settings,
-            "sla": sla,
             "start_time": start_time,
-            "status": my_status,
-            "variables": variables,
+            "tags": tags,
         }
     }
 
@@ -353,6 +505,43 @@ def create_pipeline_schedules(
         status_code=status.HTTP_200_OK,
     )
 
+@handle_database_errors
+def update_pipeline_schedules(
+    pipeline_schedules_uuid: str,
+    uuid: str,
+    # db: Session,
+    request: Request,
+):
+    data = request.json()
+    name = data.get("name")
+    description = data.get("description")
+    schedule_interval = data.get("schedule_interval")
+    schedule_type = data.get("schedule_type")
+    settings = data.get("settings")
+    start_time = data.get("start_time")
+    my_status = data.get("status")
+    tags = data.get("tags")
+    pipeline_schedule = {
+        "pipeline_schedule": {
+            "name": name,
+            "description": description,
+            "schedule_interval": schedule_interval,
+            "schedule_type": schedule_type,
+            "settings": settings,
+            "start_time": start_time,
+            "status": my_status,
+            "tags": tags,
+        }
+    }
+
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
+    headers = {"x_api_key": MAGE_API_KEY}
+    response = requests.post(url, json=pipeline_schedule, headers=headers)
+    data_dict = response.json()
+    return JSONResponse(
+        content=data_dict,
+        status_code=status.HTTP_200_OK,
+    )
 
 @handle_database_errors
 def delete_one_pipeline_schedules(
