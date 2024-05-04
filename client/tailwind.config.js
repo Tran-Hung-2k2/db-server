@@ -11,10 +11,11 @@ export default {
                 mytheme: {
                     primary: '#b91d2d',
                     secondary: '#ff273e',
-                    normal: '#636363',
-                    accent: '#ffffff',
-                    neutral: '#ffffff',
+                    normal: '#e5e5e5',
+                    accent: '#f3f4f6',
+                    neutral: '#414141',
                     'base-100': '#ffffff',
+                    'hung-100': '#ff273e',
                 },
             },
         ], // false: only light + dark | true: all themes | array: specific themes like this ["light", "dark", "cupcake"]

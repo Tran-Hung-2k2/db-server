@@ -6,9 +6,8 @@ import { PiPassword } from 'react-icons/pi';
 import { useDispatch, useSelector } from 'react-redux';
 
 import action from '../redux/auth/auth.action';
-import avatar from '../assets/images/avatar.jpg';
 
-const Header = () => {
+export default function Component() {
     const { user } = useSelector((state) => state.auth);
 
     const dispatch = useDispatch();
@@ -56,6 +55,4 @@ const Header = () => {
             </div>
         </div>
     );
-};
-
-export default Header;
+}

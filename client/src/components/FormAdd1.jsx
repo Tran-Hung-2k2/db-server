@@ -1,7 +1,5 @@
 import { useState } from 'react';
 
-import ButtonBack from './ButtonBack';
-
 function FormAdd({ fields, title, onSubmit, children }) {
     const fieldsState = fields.reduce(
         (acc, field) => ({ ...acc, [field.id]: field.type == 'checkbox' ? true : '' }),
@@ -20,8 +18,7 @@ function FormAdd({ fields, title, onSubmit, children }) {
     };
 
     return (
-        <form className="m-6 space-y-6 h-fit" onSubmit={(e) => onSubmit(e, state)}>
-            <ButtonBack />
+        <form className="space-y-6 h-fit" onSubmit={(e) => onSubmit(e, state)}>
             <h3 className="text-2xl font-bold text-primary">{title}</h3>
             <div className="flex flex-col space-y-4 h-fit">
                 {children}

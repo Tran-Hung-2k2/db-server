@@ -9,9 +9,10 @@ type GetChannelRequest struct {
 }
 
 type CreateChannelRequest struct {
-	Name   string          `form:"name" validate:"required"`
-	Type   string          `form:"type" validate:"required"`
-	Config json.RawMessage `form:"config" validate:"omitempty"`
+	Name        string          `form:"name" validate:"required"`
+	Type        string          `form:"type" validate:"required"`
+	Description string          `form:"description"`
+	Config      json.RawMessage `form:"config" validate:"omitempty"`
 }
 
 type UpdateChannelRequest struct {

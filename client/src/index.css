@@ -16,7 +16,7 @@ body {
     -moz-osx-font-smoothing: grayscale;
 
     color-scheme: light dark;
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
 
     font-synthesis: none;
     text-rendering: optimizeLegibility;

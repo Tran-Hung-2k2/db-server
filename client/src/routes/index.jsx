@@ -44,8 +44,6 @@ const routes = [
                         path: '/channels/manage',
                         component: ChannelManage,
                     },
-                ],
-                routes: [
                     {
                         path: '/mlops/manage',
                         component: MLOpsManage,

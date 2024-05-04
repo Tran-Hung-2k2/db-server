@@ -86,7 +86,7 @@ func SignIn(ctx *gin.Context) {
 		})
 
 		// Đặt access token vào cookie
-		// ctx.SetSameSite(http.SameSiteNoneMode)
+		ctx.SetSameSite(http.SameSiteNoneMode)
 		ctx.SetCookie(constants.ACCESS_TOKEN_KEY, token, 3*24*60*60, "/", "", true, true)
 
 		var resData schemas.SignInResponse

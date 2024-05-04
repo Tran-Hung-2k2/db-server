@@ -18,6 +18,14 @@ const api = {
         return response.data;
     },
 
+    createChannel: async (data) => {
+        const response = await axios.post(`/api/channels/`, data, {
+            withCredentials: true,
+        });
+
+        return response.data;
+    },
+
     updateChannel: async (data, id) => {
         const response = await axios.patch(`/api/channels/${id}`, data, {
             withCredentials: true,

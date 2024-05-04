@@ -21,7 +21,7 @@ const confirm = (options) => {
                                         if (options.onConfirm) options.onConfirm();
                                         onClose();
                                     }}
-                                    className="btn btn-error"
+                                    className="text-white btn btn-error"
                                 >
                                     {options.confirmLabel || 'Xác nhận'}
                                 </button>

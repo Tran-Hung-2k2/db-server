@@ -1,12 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-import label from '@constants/label';
 import favicon from '@assets/images/sidebar.svg';
-import { useEffect } from 'react';
 import menuItem from '@constants/sidebar';
 
-const Sidebar = () => {
+export default function Component() {
     const { user } = useSelector((state) => state.auth);
 
     return (
@@ -45,7 +43,7 @@ const Sidebar = () => {
                                                 </summary>
                                                 <ul>
                                                     {item.child.map((subItem, subIndex) =>
-                                                        subItem.role.includes(user.Role) ? (
+                                                        subItem.role.includes(user.role) ? (
                                                             <li key={subIndex}>
                                                                 <NavLink
                                                                     to={subItem.path}
@@ -87,6 +85,4 @@ const Sidebar = () => {
             </ul>
         </div>
     );
-};
-
-export default Sidebar;
+}

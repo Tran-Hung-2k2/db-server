@@ -1,10 +1,10 @@
 import logo from '../assets/images/favicon.ico';
 
-function Footer() {
+export default function Component() {
     return (
-        <footer className="p-10 footer text-base-content border-t-2">
+        <footer className="p-10 border-t-2 footer text-base-content">
             <aside>
-                <img className="h-12 w-12" src={logo} alt="logo" />
+                <img className="w-12 h-12" src={logo} alt="logo" />
                 <p>
                     2023 Coursera Inc. All rights reserved.
                     <br />
@@ -58,5 +58,3 @@ function Footer() {
         </footer>
     );
 }
-
-export default Footer;

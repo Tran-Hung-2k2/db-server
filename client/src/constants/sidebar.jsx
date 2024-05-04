@@ -1,8 +1,8 @@
 import { GrUserManager } from 'react-icons/gr';
-import { GoArrowSwitch } from 'react-icons/go';
-import { LuParkingCircle } from 'react-icons/lu';
-import { CiCreditCard1 } from 'react-icons/ci';
-import { BsFillDeviceSsdFill } from 'react-icons/bs';
+import { LuBrainCircuit } from 'react-icons/lu';
+import { FiDatabase } from 'react-icons/fi';
+import { LuWorkflow } from 'react-icons/lu';
+import { MdOutlineDataExploration } from 'react-icons/md';
 
 import label from './label';
 
@@ -21,77 +21,57 @@ const menuItem = [
         icon: <GrUserManager />,
     },
     {
-        title: 'Channel',
+        title: 'Nguồn dữ liệu',
         role: [...Object.values(label.role)],
         child: [
             {
-                path: '/in-out/parking',
-                title: 'Quản lý channel',
-                role: [label.role.MANAGER],
-            },
-            {
-                path: '/record/manager',
-                title: 'Lịch sử ra vào',
-                role: [label.role.USER, label.role.ADMIN],
+                path: '/channels/manage',
+                title: 'Quản lý nguồn dữ liệu',
+                role: [label.role.USER],
             },
         ],
-        icon: <GoArrowSwitch />,
+        icon: <MdOutlineDataExploration />,
     },
     {
-        title: 'Bãi đỗ xe',
+        title: 'Kho dữ liệu',
         role: [...Object.values(label.role)],
         child: [
             {
-                path: '/parking/info',
-                title: 'Thông tin các bãi đỗ xe',
-                role: [label.role.USER, label.role.MANAGER],
-            },
-            {
-                path: '/parking/manager',
-                title: 'Quản lý bãi đỗ xe',
-                role: [label.role.ADMIN],
-            },
-            {
-                path: '/parking/add',
-                title: 'Thêm bãi đỗ xe',
-                role: [label.role.ADMIN],
+                path: '/datamarts/manage',
+                title: 'Quản lý kho dữ liệu',
+                role: [label.role.USER],
             },
         ],
-        icon: <LuParkingCircle />,
+        icon: <FiDatabase />,
     },
     {
-        title: 'Thẻ gửi xe',
+        title: 'Pipelines',
         role: [label.role.ADMIN, label.role.USER],
         child: [
             {
-                path: '/card/manager',
-                title: 'Quản lý thẻ gửi xe',
-                role: [label.role.ADMIN, label.role.USER],
-            },
-            {
-                path: '/card/add',
-                title: 'Thêm thẻ gửi xe',
-                role: [label.role.ADMIN],
+                path: '/pipelines/manage',
+                title: 'Quản lý pipelines',
+                role: [label.role.USER],
             },
         ],
-        icon: <CiCreditCard1 />,
+        icon: <LuWorkflow />,
     },
     {
-        title: 'Thiết bị',
-        role: [label.role.ADMIN],
+        title: 'AI/ML',
+        role: [label.role.USER],
         child: [
             {
-                path: '/device/manager',
-                title: 'Quản lý thiết bị',
-                role: [label.role.ADMIN],
+                path: '/mlops/experiments/manage',
+                title: 'Experiments',
+                role: [label.role.USER],
             },
             {
-                path: '/device/add',
-                title: 'Thêm thiết bị',
-                role: [label.role.ADMIN],
+                path: '/mlops/models/manage',
+                title: 'Models',
+                role: [label.role.USER],
             },
         ],
-        icon: <BsFillDeviceSsdFill />,
+        icon: <LuBrainCircuit />,
     },
     {
         label: 'OTHER',

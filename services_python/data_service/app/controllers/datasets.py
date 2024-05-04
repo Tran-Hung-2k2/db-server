@@ -87,7 +87,8 @@ def query_table_datasets(db: Session, request: Request):
 
     return JSONResponse(
         content={
-            "detail": "Truy vấn danh dataset thành công.",
+            "message": "Truy vấn danh dataset thành công.",
+            "detail": "Truy vấn thành công.",
             "skip": skip,
             "limit": limit,
             "total": total,

@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <Router>
         <Provider store={store}>
             <App />
-            <ToastContainer position="top-right" />
+            <ToastContainer style={{ zIndex: 10000000 }} position="top-right" />
         </Provider>
     </Router>,
 );
