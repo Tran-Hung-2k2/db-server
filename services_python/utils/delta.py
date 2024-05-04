@@ -126,16 +126,62 @@ def query_sql_from_delta_table(
     }, total_records
 
 
-def read_delta_from_s3_as_df(
+def read_delta_from_s3_as_pandas(
     user_id,
     dataset_id,
-    start_datetime:datetime,
-    end_datetime:datetime,
+    input: list = [],
+    op: list = [],
+    output: list = []
 ):
+    valid_ops = ["=", "!=", "==", "in", "not in", "<", ">", "<=", ">="]
+    if len(input) != len(op) or len(input) != len(output):
+        raise ValueError("Lengths of input, op, and output lists must be equal.")
+    
     delta_table_path = f"s3://{user_id}/{dataset_id}"
     dt = DeltaTable(
         table_uri=delta_table_path,
         storage_options=storage_options,
     )
-    df = dt.load_as_version().to_pandas()
+    if input:
+        filter_condition = []
+        for i in range(len(input)):
+            if op[i] not in valid_ops:
+                raise ValueError(f"Invalid operator '{op[i]}' at index {i}.")
+            condition = (input[i], op[i], output[i])
+            filter_condition.append(condition)
+        df = dt.load_as_version(filter=filter_condition).to_pandas()
+        return df
+    else:
+        df = dt.load_as_version().to_pandas()
+        return df
+
+def read_delta_from_s3_as_pyarrow(
+    user_id,
+    dataset_id,
+    input: list = [],
+    op: list = [],
+    output: list = []
+):
+    valid_ops = ["=", "!=", "==", "in", "not in", "<", ">", "<=", ">="]
+    if len(input) != len(op) or len(input) != len(output):
+        raise ValueError("Lengths of input, op, and output lists must be equal.")
+    
+    delta_table_path = f"s3://{user_id}/{dataset_id}"
+    dt = DeltaTable(
+        table_uri=delta_table_path,
+        storage_options=storage_options,
+    )
+    
+    if input:
+        filter_condition = []
+        for i in range(len(input)):
+            if op[i] not in valid_ops:
+                raise ValueError(f"Invalid operator '{op[i]}' at index {i}.")
+            condition = (input[i], op[i], output[i])
+            filter_condition.append(condition)
+        df = dt.load_as_version(filter=filter_condition).to_pyarrow_dataset()
+        return df
+    else:
+        df = dt.load_as_version().to_pyarrow_dataset()
+        return df
     

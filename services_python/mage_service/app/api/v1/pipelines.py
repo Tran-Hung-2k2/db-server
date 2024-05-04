@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 import services_python.mage_service.app.controllers.pipelines as ctl
-import services_python.mage_service.app.schemas.datasets as schemas
+import services_python.mage_service.app.schemas.pipeline as schemas
 import services_python.middlewares.auth as middlewares
 from services_python.mage_service.app.database import get_session
 
@@ -177,11 +177,32 @@ async def get_all_pipeline_schedules(
     # , dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_pipeline_schedules(
+    uuid: str,
     request: Request,
     data: schemas.DatasetCreate,
     # db: Session = Depends(get_session),
 ):
     return ctl.create_pipeline_schedules(
+        uuid,
+        # db,
+        data,
+        request,
+    )
+
+@router.put(
+    "/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
+    # , dependencies=[Depends(middlewares.verify_user)]
+)
+async def update_pipeline_schedules(
+    uuid:str,
+    pipeline_schedules_uuid:str,
+    request: Request,
+    data: schemas.DatasetCreate,
+    # db: Session = Depends(get_session),
+):
+    return ctl.update_pipeline_schedules(
+        uuid,
+        pipeline_schedules_uuid,
         # db,
         data,
         request,

@@ -1,0 +1,9 @@
+schema:
+    MESSAGE_TYPE: StringType
+    DEVICE_ID: IntegerType
+    IMSI: StringType
+    TRACKER_STATE: StringType
+user_id: duonghdt
+dataset_id: tracker_data_spark_2c_standalone_template
+kafka_server: 172.21.5.234:9092
+kafka_topic: Tracker-data

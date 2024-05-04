@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 import services_python.mage_service.app.controllers.pipelines_schedules as ctl
-import services_python.mage_service.app.schemas.datasets as schemas
+import services_python.mage_service.app.schemas.pipeline as schemas
 import services_python.middlewares.auth as middlewares
 from services_python.mage_service.app.database import get_session
 
