@@ -40,7 +40,7 @@ exreq:
 
 # Run Service
 magesrv:
-	python services_python/mage_service/app/main.py
+	python3 services_python/mage_service/app/main.py
 
 authsrv: 
 	cd services_go && go run cmd/auth/main.go

@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from fastapi import status, Request, UploadFile
 from fastapi.responses import JSONResponse
 import json
-from services_python.data_service.app.models import Dataset
-import services_python.data_service.app.schemas.datamarts as schemas
+from services_python.mage_service.app.models import Pipeline, Block, PipelineSchedule
+import services_python.mage_service.app.schemas.pipeline as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
@@ -24,13 +24,13 @@ MAGE_API_KEY = os.getenv("MAGE_API_KEY", "zkWlN0PkIKSN0C11CfUHUj84OT5XOJ6tDZ6bDR
 
 # HANDLE PIPELINES
 
-
 @handle_database_errors
 def get_all_pipelines(
     # db: Session,
     request: Request,
 ):
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines"   # _limit=30&_offset=0
+    user_id=request.state.id
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}"   # _limit=30&_offset=0
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
@@ -57,7 +57,6 @@ def get_all_pipelines(
             "description": pipeline.get("description"),
             "name": pipeline.get("name"),
             "settings": pipeline.get("settings"),
-            "tags": pipeline.get("tags"),
             "type": pipeline.get("type"),
             "uuid": pipeline.get("uuid"),
             "blocks_number": len(pipeline.get("blocks", [])),
@@ -91,7 +90,6 @@ def get_one_pipeline(
             "description": data_dict["pipeline"]["description"],
             "name": data_dict["pipeline"]["name"],
             "settings": data_dict["pipeline"]["settings"],
-            "tags": data_dict["pipeline"]["tags"],
             "type": data_dict["pipeline"]["type"],
             "uuid": data_dict["pipeline"]["uuid"],
             "blocks": [{
@@ -118,15 +116,14 @@ def get_one_pipeline(
 
 @handle_database_errors
 def create_pipelines(
+    data: schemas.PipelineCreate,
     # db: Session,
     request: Request,
 ):
-
-    data = request.json()
-    name = data.get("name")
-    type = data.get("type")
-    tags = data.get("tags")
-    description = data.get("description")
+    name = data.name
+    type = data.type
+    tags = request.state.id
+    description = data.description
 
     if not name or not type:
         return JSONResponse(
@@ -154,10 +151,9 @@ def create_pipelines(
         "description": pipeline.get("description"),
         "name": pipeline.get("name"),
         "settings": pipeline.get("settings"),
-        "tags": pipeline.get("tags"),
         "type": pipeline.get("type"),
-        "uuid": pipeline.get("uuid"),
-        "variables_dir": pipeline.get("variables_dir"),
+        # "uuid": pipeline.get("uuid"),
+        # "variables_dir": pipeline.get("variables_dir"),
         "blocks_number": len(pipeline.get("blocks", [])),
         "schedules_number": len(pipeline.get("schedules", []))
     }
@@ -209,7 +205,6 @@ def delete_one_pipeline(
 
 # HANDLE BLOCKS
 
-
 @handle_database_errors
 def get_one_block(
     uuid: str,
@@ -244,41 +239,42 @@ def get_one_block(
     )
 
 
-def get_data_source_block_content(type, config):
-    if type == "postgres":
-        from services_python.mage_service.template.datasource.postgres import (
-            get_string,
-            check_config_keys,
-        )
-        if check_config_keys(config):
-            return get_string(config)
-    elif type == "mysql":
-        pass
-    elif type == "mongodb":
-        pass
-    elif type == "amazon_s3":
-        pass
-    else:
-        pass
+def get_block_content(block_type,source_type,config):
+    if block_type == "data_loader":
+        if source_type == "postgres":
+            from services_python.mage_service.template.datasource.postgres import (
+                get_string,
+                check_config_keys,
+            )
+            if check_config_keys(config):
+                return get_string(config)
+        elif source_type == "mysql":
+            pass
+        elif source_type == "mongodb":
+            pass
+        elif source_type == "amazon_s3":
+            pass
+        else:
+            pass
 
 
 @handle_database_errors
-def create_data_source_block(
+def create_block(
+    data: schemas.BlockCreate,
     uuid: str,
     # db: Session,
     request: Request,
 ):
-    data = request.json()
-    name = data.get("name")
-    block_type = data.get("type")
-    code_config = data.get("config")
-    content = get_data_source_block_content(block_type, code_config)
+    name = data.name
+    source_type = data.source_type
+    source_config = data.source_config
+    block_type = data.block_type
+    content = get_block_content(block_type, source_type, source_config)
     language = "python"
-    type = "data_loader"
     extracted_info = {
         "block": {
             "name": name,
-            "type": type,
+            "type": block_type,
             "content": content,
             "language": language,
             # "color": color,
@@ -322,19 +318,21 @@ def create_data_source_block(
 def update_block(
     uuid: str,
     block_uuid: str,
+    data: schemas.BlockUpdate,
     # db: Session,
     request: Request,
 ):
-    data = request.json()
-    name = data.get("name")
-    block_type = data.get("type")
-    content = data.get("content")
-    downstream_blocks = data.get("downstream_blocks")
-    upstream_blocks = data.get("upstream_blocks")
-    conditional_blocks = data.get("conditional_blocks")
-    callback_blocks = data.get("callback_blocks")
-    has_callback = data.get("has_callback")
-    retry_config = data.get("retry_config")
+    name = data.name
+    block_type = data.block_type
+    source_config = data.source_config
+    source_type = data.source_type
+    content = get_block_content(block_type, source_type, source_config)
+    downstream_blocks = data.downstream_blocks
+    upstream_blocks = data.upstream_blocks
+    conditional_blocks = data.conditional_blocks
+    callback_blocks = data.callback_blocks
+    has_callback = data.has_callback
+    retry_config = data.retry_config
     updated_block = {
         "block": {
             "name": name,
@@ -451,7 +449,7 @@ def get_all_pipeline_schedules(
                 "start_time": schedule["start_time"],
                 "status": schedule["status"],
                 "token": schedule["token"],
-                "variables": schedule["variables"],
+                # "variables": schedule["variables"],
                 "last_pipeline_run_status": schedule["last_pipeline_run_status"],
                 "next_pipeline_run_date": schedule["next_pipeline_run_date"],
                 "pipeline_in_progress_runs_count": schedule["pipeline_in_progress_runs_count"],
@@ -473,17 +471,17 @@ def get_all_pipeline_schedules(
 @handle_database_errors
 def create_pipeline_schedules(
     uuid: str,
+    data: schemas.PipelineScheduleCreate,
     # db: Session,
     request: Request,
 ):
-    data = request.json()
-    name = data.get("name")
-    description = data.get("description")
-    schedule_interval = data.get("schedule_interval")
-    schedule_type = data.get("schedule_type")
-    settings = data.get("settings")
-    start_time = data.get("start_time")
-    tags = data.get("tags")
+    name = data.name
+    description = data.description
+    schedule_interval = data.schedule_interval
+    schedule_type = data.schedule_type
+    settings = data.settings
+    start_time = data.start_time
+    tags = data.tags
     pipeline_schedule = {
         "pipeline_schedule": {
             "name": name,
@@ -492,7 +490,6 @@ def create_pipeline_schedules(
             "schedule_type": schedule_type,
             "settings": settings,
             "start_time": start_time,
-            "tags": tags,
         }
     }
 
@@ -500,8 +497,34 @@ def create_pipeline_schedules(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=pipeline_schedule, headers=headers)
     data_dict = response.json()
+
+    extracted_data = {
+    "pipeline_schedules":{
+        "created_at": data_dict["pipeline_schedules"]["created_at"],
+        "updated_at": data_dict["pipeline_schedules"]["updated_at"],
+        "description": data_dict["pipeline_schedules"]["description"],
+        "name": data_dict["pipeline_schedules"]["name"],
+        "settings": data_dict["pipeline_schedules"]["settings"],
+        "tags": data_dict["pipeline_schedules"]["tags"],
+        "id": data_dict["pipeline_schedules"]["id"],
+        "last_enabled_at": data_dict["pipeline_schedules"]["last_enabled_at"],
+        "pipeline_uuid": data_dict["pipeline_schedules"]["pipeline_uuid"],
+        "schedule_interval": data_dict["pipeline_schedules"]["schedule_interval"],
+        "schedule_type": data_dict["pipeline_schedules"]["schedule_type"],
+        "start_time": data_dict["pipeline_schedules"]["start_time"],
+        "status": data_dict["pipeline_schedules"]["status"],
+        "token": data_dict["pipeline_schedules"]["token"],
+        # "variables": data_dict["pipeline_schedules"]["variables"],
+        "last_pipeline_run_status": data_dict["pipeline_schedules"]["last_pipeline_run_status"],
+        "next_pipeline_run_date": data_dict["pipeline_schedules"]["next_pipeline_run_date"],
+        "pipeline_in_progress_runs_count": data_dict["pipeline_schedules"]["pipeline_in_progress_runs_count"],
+        "pipeline_runs_count": data_dict["pipeline_schedules"]["pipeline_runs_count"]
+        },
+    "metadata": data_dict["metadata"]
+    }
+
     return JSONResponse(
-        content=data_dict,
+        content=extracted_data,
         status_code=status.HTTP_200_OK,
     )
 
@@ -538,8 +561,34 @@ def update_pipeline_schedules(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=pipeline_schedule, headers=headers)
     data_dict = response.json()
+
+    extracted_data = {
+    "pipeline_schedules":{
+        "created_at": data_dict["pipeline_schedules"]["created_at"],
+        "updated_at": data_dict["pipeline_schedules"]["updated_at"],
+        "description": data_dict["pipeline_schedules"]["description"],
+        "name": data_dict["pipeline_schedules"]["name"],
+        "settings": data_dict["pipeline_schedules"]["settings"],
+        "tags": data_dict["pipeline_schedules"]["tags"],
+        "id": data_dict["pipeline_schedules"]["id"],
+        "last_enabled_at": data_dict["pipeline_schedules"]["last_enabled_at"],
+        "pipeline_uuid": data_dict["pipeline_schedules"]["pipeline_uuid"],
+        "schedule_interval": data_dict["pipeline_schedules"]["schedule_interval"],
+        "schedule_type": data_dict["pipeline_schedules"]["schedule_type"],
+        "start_time": data_dict["pipeline_schedules"]["start_time"],
+        "status": data_dict["pipeline_schedules"]["status"],
+        "token": data_dict["pipeline_schedules"]["token"],
+        # "variables": data_dict["pipeline_schedules"]["variables"],
+        "last_pipeline_run_status": data_dict["pipeline_schedules"]["last_pipeline_run_status"],
+        "next_pipeline_run_date": data_dict["pipeline_schedules"]["next_pipeline_run_date"],
+        "pipeline_in_progress_runs_count": data_dict["pipeline_schedules"]["pipeline_in_progress_runs_count"],
+        "pipeline_runs_count": data_dict["pipeline_schedules"]["pipeline_runs_count"]
+        },
+    "metadata": data_dict["metadata"]
+    }
+
     return JSONResponse(
-        content=data_dict,
+        content=extracted_data,
         status_code=status.HTTP_200_OK,
     )
 
@@ -554,7 +603,32 @@ def delete_one_pipeline_schedules(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
+    extracted_data = {
+    "pipeline_schedules":{
+        "created_at": data_dict["pipeline_schedules"]["created_at"],
+        "updated_at": data_dict["pipeline_schedules"]["updated_at"],
+        "description": data_dict["pipeline_schedules"]["description"],
+        "name": data_dict["pipeline_schedules"]["name"],
+        "settings": data_dict["pipeline_schedules"]["settings"],
+        "tags": data_dict["pipeline_schedules"]["tags"],
+        "id": data_dict["pipeline_schedules"]["id"],
+        "last_enabled_at": data_dict["pipeline_schedules"]["last_enabled_at"],
+        "pipeline_uuid": data_dict["pipeline_schedules"]["pipeline_uuid"],
+        "schedule_interval": data_dict["pipeline_schedules"]["schedule_interval"],
+        "schedule_type": data_dict["pipeline_schedules"]["schedule_type"],
+        "start_time": data_dict["pipeline_schedules"]["start_time"],
+        "status": data_dict["pipeline_schedules"]["status"],
+        "token": data_dict["pipeline_schedules"]["token"],
+        # "variables": data_dict["pipeline_schedules"]["variables"],
+        "last_pipeline_run_status": data_dict["pipeline_schedules"]["last_pipeline_run_status"],
+        "next_pipeline_run_date": data_dict["pipeline_schedules"]["next_pipeline_run_date"],
+        "pipeline_in_progress_runs_count": data_dict["pipeline_schedules"]["pipeline_in_progress_runs_count"],
+        "pipeline_runs_count": data_dict["pipeline_schedules"]["pipeline_runs_count"]
+        },
+    "metadata": data_dict["metadata"]
+    }
+
     return JSONResponse(
-        content=data_dict,
+        content=extracted_data,
         status_code=status.HTTP_200_OK,
     )

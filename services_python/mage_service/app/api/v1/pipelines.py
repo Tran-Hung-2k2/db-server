@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
 import services_python.mage_service.app.controllers.pipelines as ctl
-import services_python.mage_service.app.schemas.pipeline as schemas
+import services_python.mage_service.app.schemas.pipelines as schemas
 import services_python.middlewares.auth as middlewares
 from services_python.mage_service.app.database import get_session
 
@@ -50,12 +50,12 @@ async def get_one_pipeline(
 )
 async def create_pipelines(
     request: Request,
-    # data: schemas.DatasetCreate,
+    data: schemas.PipelineCreate,
     # db: Session = Depends(get_session),
 ):
     return ctl.create_pipelines(
         # db,
-        # data,
+        data,
         request,
     )
 
@@ -101,13 +101,13 @@ async def get_one_block(
     "/{uuid}/blocks/datasource"
     # , dependencies=[Depends(middlewares.verify_user)]
 )
-async def create_data_source_block(
+async def create_block(
     uuid: str,
     request: Request,
-    data: schemas.DatasetCreate,
+    data: schemas.BlockCreate,
     # db: Session = Depends(get_session),
 ):
-    return ctl.create_data_source_block(
+    return ctl.create_block(
         uuid,
         # db,
         data,
@@ -123,7 +123,7 @@ async def update_block(
     request: Request,
     uuid: str,
     block_uuid: str,
-    data: schemas.DatasetCreate,
+    data: schemas.BlockUpdate,
     # db: Session = Depends(get_session),
 ):
     return ctl.update_block(
