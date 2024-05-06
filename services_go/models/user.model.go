@@ -1,17 +1,15 @@
 package models
 
 import (
-	"db-server/constants"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
 	Base
-	Name     string             `json:"name" gorm:"not null;default:null"`
-	Email    string             `json:"email" gorm:"unique;not null;default:null"`
-	Password string             `json:"password" gorm:"not null;default:null"`
-	Role     constants.UserRole `json:"role" gorm:"type:user_role;not null;default:null"`
+	Name     string `json:"name" gorm:"not null;default:null"`
+	Email    string `json:"email" gorm:"unique;not null;default:null"`
+	Password string `json:"password" gorm:"not null;default:null"`
+	Role     string `json:"role" gorm:"not null;default:null"`
 }
 
 func (u *User) HashPassword() error {

@@ -2,6 +2,7 @@ import { IoClose } from 'react-icons/io5';
 import FormEdit from './FormEdit';
 import fields from '@/constants/form/channels';
 import api from '@/api/channels';
+import type from '@/redux/auth/auth.type';
 
 export default function Component({ reload, setReload, id }) {
     const handleSubmit = async (e, data) => {
@@ -10,14 +11,14 @@ export default function Component({ reload, setReload, id }) {
 
         const newData = {
             name,
-            type,
             description,
             config,
         };
 
-        await api.createChannel(newData);
+        console.log(newData);
+        await api.updateChannel(newData, id);
         setReload(!reload);
-        document.getElementById('channel_create').close();
+        document.getElementById('channel_detail').close();
     };
 
     const getData = async () => {
@@ -25,8 +26,8 @@ export default function Component({ reload, setReload, id }) {
         const data = res.data?.data[0];
         return {
             name: data.name,
-            type: data.type,
             description: data.description,
+            type: data.type,
             ...data.config,
         };
         // const sortedList = _.orderBy(res.data?.data, ['created_at', 'name'], 'desc');

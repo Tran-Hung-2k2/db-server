@@ -2,7 +2,7 @@ import axios from './axios';
 
 const api = {
     getChannel: async (params) => {
-        const queryParams = ['id', 'user_id', 'type', 'limit', 'skip'];
+        const queryParams = ['id', 'user_id', 'type', 'limit', 'skip', 'sort_by', 'sort_dim', 'name'];
         const paramsObject = {};
 
         if (params) {

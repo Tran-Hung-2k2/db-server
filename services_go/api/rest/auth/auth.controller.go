@@ -31,7 +31,7 @@ func SignUp(ctx *gin.Context) {
 		return
 	}
 
-	data.Role = constants.User
+	data.Role = constants.USER
 
 	// Mã hóa mật khẩu của người dùng
 	data.HashPassword()

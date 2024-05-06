@@ -1,9 +1,14 @@
-import _ from 'lodash';
+import _, { set } from 'lodash';
 import { useEffect, useState } from 'react';
+import { FaSortAmountDown } from 'react-icons/fa';
+import { FaSortAmountDownAlt } from 'react-icons/fa';
 import { MdOutlineRateReview } from 'react-icons/md';
 import { MdOutlineDelete } from 'react-icons/md';
+import { MdOutlinePlaylistRemove } from 'react-icons/md';
 import { VscFilter } from 'react-icons/vsc';
+import { IoSearch } from 'react-icons/io5';
 import { FiPlus } from 'react-icons/fi';
+import { IoClose } from 'react-icons/io5';
 
 import Loader from '@components/Loader';
 import ChannelDetail from '@/components/ChannelDetail';
@@ -15,23 +20,36 @@ import convertTime from '@/utils/convertTime';
 import confirm from '@/utils/confirm';
 
 import avatars from '@/constants/channel_type_image';
+import recordPerPage from '@/constants/record_per_page';
+import Pagination from '@/components/Pagination';
 
 export default function Page() {
     const [loading, setLoading] = useState(false);
     const [reload, setReload] = useState(false);
+
+    const [limit, setLimit] = useState(recordPerPage[0]);
+    const [total, setTotal] = useState(0);
+    const [skip, setSkip] = useState(0);
+
+    const [sortBy, setSortBy] = useState('');
+    const [sortDim, setSortDim] = useState('');
+
+    const [searchText, setSearchText] = useState('');
+
     const [id, setID] = useState('');
     const [dataList, setDataList] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const res = await api.getChannel();
+            const res = await api.getChannel({ limit, skip, sort_by: sortBy, sort_dim: sortDim, name: searchText });
+            setTotal(res.data?.total);
             setDataList(res.data?.data);
             setLoading(false);
         };
 
         fetchData();
-    }, [reload]);
+    }, [reload, limit, skip, sortBy, sortDim, searchText]);
 
     function deleteObj(id) {
         confirm({
@@ -44,101 +62,193 @@ export default function Page() {
         });
     }
 
+    function SortableColumn({ name, label }) {
+        return (
+            <th
+                onClick={() => {
+                    setSortBy(name);
+                    setSortDim(sortDim === 'asc' ? 'desc' : 'asc');
+                }}
+                className={`text-base cursor-pointer ${sortBy === name ? 'text-primary' : ''}`}
+            >
+                <p className="inline-block">{label}</p>
+                <div
+                    className={`inline-block ml-2 translate-y-0.5 ${
+                        sortBy === name ? 'opacity-100' : 'opacity-0'
+                    } hover:opacity-100`}
+                >
+                    {sortDim == 'asc' ? <FaSortAmountDownAlt /> : <FaSortAmountDown />}
+                </div>
+            </th>
+        );
+    }
+
     return (
         <>
-            <div className="flex-grow w-full px-8 py-2 ">
+            <div className="flex-grow w-full px-8 py-2">
                 <dialog id="channel_create" className="modal">
                     <ChannelCreate reload={reload} setReload={setReload} />
                 </dialog>
                 <dialog id="channel_detail" className="modal">
-                    <ChannelDetail id={id} />
-                    
+                    <ChannelDetail id={id} reload={reload} setReload={setReload} />
                 </dialog>
                 {/* Title */}
                 <h3 className="pb-4 text-xl font-bold text-neutral">Quản lý nguồn dữ liệu</h3>
 
                 {/* Action bar*/}
-                <div className="flex flex-row gap-2 pb-4">
-                    <button
-                        className="h-10 py-2 font-bold text-white btn-sm btn btn-primary"
-                        onClick={() => document.getElementById('channel_create').showModal()}
-                    >
-                        <FiPlus className="text-xl" />
-                        Tạo mới
-                    </button>
+                <div className="flex justify-between">
+                    <div className="flex flex-row gap-2 pb-4">
+                        <button
+                            className="h-10 py-2 font-bold text-white btn-sm btn btn-primary"
+                            onClick={() => document.getElementById('channel_create').showModal()}
+                        >
+                            <FiPlus className="text-xl" />
+                            Tạo mới
+                        </button>
 
-                    <button className="h-10 py-2 font-bold bg-white border btn-sm btn border-primary text-primary hover:bg-white hover:border-primary hover:opacity-75">
-                        <VscFilter className="text-xl" />
-                        Lọc
-                    </button>
+                        <div className="dropdown dropdown-bottom dropdown-start">
+                            <button
+                                tabIndex={0}
+                                role="button"
+                                className="h-10 py-2 mb-1 font-bold bg-white border btn-sm btn border-primary text-primary hover:bg-white hover:border-primary hover:opacity-75"
+                            >
+                                <VscFilter className="text-xl" />
+                                Lọc
+                            </button>
+                            <ul
+                                tabIndex={0}
+                                className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+                            >
+                                <li>
+                                    <a>Item 1</a>
+                                </li>
+                                <li>
+                                    <a>Item 2</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <label className="flex items-center h-10 gap-2 py-2 w-fit input input-primary focus-within:outline-none focus-within:ring-primary focus-within:ring-1">
+                            <IoSearch size={20} />
+                            <input
+                                type="text"
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                                className="grow max-w-40"
+                                placeholder="Search"
+                            />
+                            <IoClose
+                                size={20}
+                                className={`cursor-pointer ${searchText ? 'opacity-100' : 'opacity-0'}`}
+                                onClick={() => setSearchText('')}
+                            />
+                        </label>
+                        {sortBy && (
+                            <button
+                                className="h-10 py-2 font-bold bg-white border btn-sm btn border-primary text-primary hover:bg-white hover:border-primary hover:opacity-75"
+                                onClick={() => {
+                                    setSortBy('');
+                                    setSortDim('');
+                                }}
+                            >
+                                <MdOutlinePlaylistRemove className="text-xl" />
+                                Bỏ sắp xếp
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="grid content-center grid-cols-2">
+                        <select
+                            className="inline-block h-6 font-semibold border-none focus:outline-none w-fit input"
+                            value={limit}
+                            onChange={(e) => {
+                                setSkip(0);
+                                setLimit(e.target.value);
+                            }}
+                        >
+                            {recordPerPage.map((value, index) => (
+                                <option key={index}>{value}</option>
+                            ))}
+                        </select>
+                        <span className="inline -translate-x-3">/ trang</span>
+                    </div>
                 </div>
 
                 {/* Table */}
                 {loading ? (
                     <Loader />
                 ) : (
-                    <table className="table border">
-                        {/* head */}
-                        <thead className="bg-zinc-100">
-                            <tr>
-                                <th className="pr-0 text-sm text-center"></th>
-                                <th className="text-sm text-center">Tên</th>
-                                <th className="text-sm text-center w-52">Loại</th>
-                                <th className="w-56 text-sm text-center">Mô tả</th>
-                                <th className="text-sm text-center">Thời gian tạo</th>
-                                <th className="text-sm text-center">Thời gian cập nhật</th>
-                                <th className="text-sm text-center"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {dataList?.map((data, index) => (
-                                <tr key={index}>
-                                    <td className="pr-0 text-center">
-                                        <div className="avatar">
-                                            <div className="w-10 h-10 mask mask-squircle">
-                                                <img src={avatars[data?.type]} alt="Channel" />
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="text-center">
-                                        <div>
-                                            <div className="text-base font-semibold">{data?.name}</div>
-                                        </div>
-                                    </td>
-                                    <td className="text-center">
-                                        <span className="font-semibold badge badge-ghost badge-base h-fit">
-                                            {data?.type}
-                                        </span>
-                                    </td>
-                                    <td className="text-justify">{data?.description}</td>
-                                    <td className="font-mono text-center">{convertTime(data?.created_at)}</td>
-                                    <td className="font-mono text-center">{convertTime(data?.updated_at)}</td>
-
-                                    <td className="text-center">
-                                        <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Chi tiết">
-                                            <button
-                                                className="text-xl bg-white border-none btn btn-xs btn-ghost text-success hover:bg-success hover:text-white"
-                                                onClick={() => {
-                                                    setID(data?.id);
-                                                    document.getElementById('channel_detail').showModal();
-                                                }}
-                                            >
-                                                <MdOutlineRateReview />
-                                            </button>
-                                        </div>
-                                        <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Xóa">
-                                            <button
-                                                className="text-xl bg-white border-none btn btn-xs text-error hover:bg-error hover:text-white"
-                                                onClick={() => deleteObj(data?.id)}
-                                            >
-                                                <MdOutlineDelete />
-                                            </button>
-                                        </div>
-                                    </td>
+                    <div className="flex flex-col items-center">
+                        <table className="table border">
+                            {/* head */}
+                            <thead className="bg-zinc-100">
+                                <tr>
+                                    <th className="text-base text-center"></th>
+                                    <th className="pl-0 text-base"></th>
+                                    <SortableColumn name="name" label="Tên" />
+                                    <SortableColumn name="type" label="Loại" />
+                                    <SortableColumn name="description" label="Mô tả" />
+                                    <SortableColumn name="created_at" label="Thời gian tạo" />
+                                    <SortableColumn name="updated_at" label="Lần sửa đổi cuối" />
+                                    <th className="text-base"></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {dataList?.map((data, index) => (
+                                    <tr key={index}>
+                                        <td className="text-center">
+                                            <div className="text-base font-semibold">
+                                                {parseInt(index) + parseInt(skip) + 1}
+                                            </div>
+                                        </td>
+                                        <td className="pl-0">
+                                            <div className="avatar">
+                                                <div className="w-10 h-10 mask mask-squircle">
+                                                    <img src={avatars[data?.type]} alt="Channel" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <div className="text-base font-semibold">{data?.name}</div>
+                                            </div>
+                                        </td>
+                                        <td className="w-44">
+                                            <span className="font-semibold badge badge-ghost badge-base h-fit ">
+                                                {data?.type}
+                                            </span>
+                                        </td>
+                                        <td className="w-56 text-justify">{data?.description}</td>
+                                        <td className="font-mono">{convertTime(data?.created_at)}</td>
+                                        <td className="font-mono">{convertTime(data?.updated_at)}</td>
+
+                                        <td>
+                                            <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Chi tiết">
+                                                <button
+                                                    className="text-xl bg-white border-none btn btn-xs btn-ghost text-success hover:bg-success hover:text-white"
+                                                    onClick={() => {
+                                                        setID(data?.id);
+                                                        document.getElementById('channel_detail').showModal();
+                                                    }}
+                                                >
+                                                    <MdOutlineRateReview />
+                                                </button>
+                                            </div>
+                                            <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Xóa">
+                                                <button
+                                                    className="text-xl bg-white border-none btn btn-xs text-error hover:bg-error hover:text-white"
+                                                    onClick={() => deleteObj(data?.id)}
+                                                >
+                                                    <MdOutlineDelete />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        <Pagination skip={skip} setSkip={setSkip} limit={limit} total={total} />
+                    </div>
                 )}
             </div>
         </>

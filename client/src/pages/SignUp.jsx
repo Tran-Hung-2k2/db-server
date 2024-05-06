@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 import fields from '@constants/form/signup';
 import api from '@api/auth';
+import InputPassword from '@/components/InputPasswod';
 
 const fieldsState = fields.reduce((acc, field) => ({ ...acc, [field.id]: '' }), {});
 
@@ -38,14 +39,24 @@ export default function Page() {
                 </NavLink>
             </div>
             <div className="flex flex-col my-6 space-y-4 w-80">
-                {fields.map((field) => (
-                    <input
-                        key={field.id}
-                        onChange={handleChange}
-                        {...field}
-                        className="w-full max-w-xl input input-bordered input-primary"
-                    />
-                ))}
+                {fields.map((field) => {
+                    switch (field.type) {
+                        case 'password':
+                            return (
+                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                    {field.icon}
+                                    <InputPassword onChange={handleChange} {...field} className="grow" />
+                                </label>
+                            );
+                        default:
+                            return (
+                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                    {field.icon}
+                                    <input onChange={handleChange} {...field} className="grow" />
+                                </label>
+                            );
+                    }
+                })}
             </div>
 
             <button type="submit" className={`btn btn-active btn-primary ${loading && 'btn-disabled'}`}>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import InputPassword from './InputPasswod';
 
 export default function Component({ fields, title, onSubmit, children }) {
     // Khởi tạo trạng thái ban đầu cho các trường
@@ -81,6 +82,21 @@ export default function Component({ fields, title, onSubmit, children }) {
                                             ))}
                                         </select>
                                     );
+
+                                case 'password':
+                                    return field.inline_label ? (
+                                        <label className="flex items-center gap-2 input input-primary input-bordered">
+                                            {field.label}
+                                            <InputPassword onChange={handleChange} {...field} className="grow" />
+                                        </label>
+                                    ) : (
+                                        <InputPassword
+                                            onChange={handleChange}
+                                            {...field}
+                                            className="w-full input input-bordered input-primary"
+                                        />
+                                    );
+
                                 default:
                                     return field.inline_label ? (
                                         <label className="flex items-center gap-2 input input-primary input-bordered">
