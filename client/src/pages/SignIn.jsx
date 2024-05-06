@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 
 import fields from '@constants/form/signin';
 import action from '@redux/auth/auth.action';
+import InputPassword from '@/components/InputPasswod';
 
 const fieldsState = fields.reduce((acc, field) => ({ ...acc, [field.id]: '' }), {});
 
@@ -35,20 +36,28 @@ export default function Page() {
                 </NavLink>
             </div>
             <div className="flex flex-col mt-6 space-y-4 w-80">
-                {fields.map((field) => (
-                    <input
-                        key={field.id}
-                        onChange={handleChange}
-                        {...field}
-                        className="w-full max-w-xl input input-bordered input-primary"
-                    />
-                ))}
+                {fields.map((field) => {
+                    switch (field.type) {
+                        case 'password':
+                            return (
+                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                    {field.icon}
+                                    <InputPassword onChange={handleChange} {...field} className="grow" />
+                                </label>
+                            );
+                        default:
+                            return (
+                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                    {field.icon}
+                                    <input onChange={handleChange} {...field} className="grow" />
+                                </label>
+                            );
+                    }
+                })}
             </div>
-
             <div className="mt-2 mb-4 text-primary">
                 <NavLink to="/forget_passord">Quên mật khẩu?</NavLink>
             </div>
-
             <button type="submit" className="btn btn-active btn-primary">
                 Đăng nhập
             </button>

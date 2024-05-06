@@ -10,7 +10,7 @@ const MainLayout = ({ children }) => {
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
                 <Sidebar />
             </div>
-            <div className="w-screen">
+            <div className="w-screen mb-20">
                 <Header />
                 {children}
             </div>

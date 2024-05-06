@@ -1,7 +1,6 @@
 package schemas
 
 import (
-	"db-server/constants"
 	"db-server/models"
 )
 
@@ -13,7 +12,7 @@ type GetUserRequest struct {
 
 type GetUserResponse struct {
 	models.Base
-	Name  string             `json:"name"`
-	Email string             `json:"email"`
-	Role  constants.UserRole `json:"role"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }

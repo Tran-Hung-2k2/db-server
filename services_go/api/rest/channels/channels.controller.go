@@ -20,7 +20,7 @@ var LIMIT_RECORD = utils.GetEnv("LIMIT_RECORD", "50")
 func GetChannel(ctx *gin.Context) {
 	// Khởi tạo truy vấn
 	var query *gorm.DB
-	if ctx.GetString(constants.USER_ROLE_KEY) != string(constants.Admin) {
+	if ctx.GetString(constants.USER_ROLE_KEY) != constants.ADMIN {
 		query, _ = utils.AddQueryData(ctx, db.DB, map[string]interface{}{
 			"user_id": ctx.GetString(constants.USER_ID_KEY),
 		})
@@ -31,14 +31,23 @@ func GetChannel(ctx *gin.Context) {
 	// Get limit and skip from query parameters
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", LIMIT_RECORD))
 	skip, _ := strconv.Atoi(ctx.DefaultQuery("skip", "0"))
+	sort_by := ctx.DefaultQuery("sort_by", "created_at")
+	sort_dim := ctx.DefaultQuery("sort_dim", "desc")
+	name := ctx.DefaultQuery("name", "")
+
+	if !utils.Contains(sort_by, []string{"id", "created_at", "updated_at", "user_id", "name", "type", "description", "config"}) {
+		sort_by = "created_at"
+	}
+	if !utils.Contains(sort_dim, []string{"asc", "desc"}) {
+		sort_dim = "desc"
+	}
 
 	// Get total count
 	var total int64
-	query.Model(&models.Channel{}).Count(&total)
+	query.Model(&models.Channel{}).Where("LOWER(name) LIKE LOWER(?)", "%"+name+"%").Count(&total)
 
-	// Thực hiện truy vấn để lấy danh sách người dùng
 	var records []models.Channel
-	result := query.Limit(limit).Offset(skip).Find(&records)
+	result := query.Where("LOWER(name) LIKE LOWER(?)", "%"+name+"%").Order(fmt.Sprintf("%s %s", sort_by, sort_dim)).Limit(limit).Offset(skip).Find(&records)
 
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
@@ -55,9 +64,6 @@ func CreateChannel(ctx *gin.Context) {
 		return
 	}
 
-	// Print the type of data
-	fmt.Printf("Type of data: %T\n", record.Config)
-
 	record.UserID = uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY))
 
 	result := db.DB.Create(&record)
@@ -72,9 +78,8 @@ func UpdateChannel(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	var record models.Channel
-
-	if err := ctx.ShouldBindJSON(&record); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin yêu cầu không hợp lệ."})
+	if err := utils.GetBodyData(ctx, &record); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}
 
@@ -96,7 +101,7 @@ func UpdateChannel(ctx *gin.Context) {
 	}
 
 	// Cập nhật chỉ các trường cần thiết
-	db.DB.Model(&models.Channel{}).Where("id = ?", id).Select("Name", "Config").Updates(&record)
+	db.DB.Model(&models.Channel{}).Where("id = ?", id).Select("Name", "Description", "Config").Updates(&record)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Cập nhật thông tin channel thành công", "data": record})
 }

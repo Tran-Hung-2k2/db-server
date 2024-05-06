@@ -1,5 +1,4 @@
 import label from '@constants/label';
-import fields from './signin';
 
 const fields = [
     {
@@ -15,6 +14,7 @@ const fields = [
         type: 'select',
         options: Object.values(label.channel_type).map((value) => ({ [value]: value })),
         required: true,
+        disable: 1,
         placeholder: 'Loại nguồn dữ liệu',
     },
     {

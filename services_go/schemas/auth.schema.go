@@ -1,7 +1,6 @@
 package schemas
 
 import (
-	"db-server/constants"
 	"db-server/models"
 )
 
@@ -14,9 +13,9 @@ type SignUpRequest struct {
 
 type SignUpResponse struct {
 	models.Base
-	Name  string             `json:"name"`
-	Email string             `json:"email"`
-	Role  constants.UserRole `json:"role"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 type SignInRequest struct {
@@ -26,7 +25,7 @@ type SignInRequest struct {
 
 type SignInResponse struct {
 	models.Base
-	Name  string             `json:"name"`
-	Email string             `json:"email"`
-	Role  constants.UserRole `json:"role"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }

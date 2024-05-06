@@ -13,18 +13,19 @@ export default function Component() {
     const dispatch = useDispatch();
 
     return (
-        <div className="justify-end pt-4 bg-slate-50 navbar">
-            <div className="flex mr-16">
-                <div className="w-full dropdown dropdown-end">
-                    <span className="inline-block mr-4 -translate-y-2">
-                        <p className="text-base font-bold text-primary">{user.name}</p>
-                        <p className="text-sm">{user.role}</p>
-                    </span>
+        <div className="justify-end pt-4 h-fit bg-slate-50 navbar">
+            
+            <div className="flex items-center mr-16">
+                <div className="inline-block mr-4">
+                    <p className="text-base font-bold text-primary">{user.name}</p>
+                    <p className="text-sm">{user.email}</p>
+                </div>
+                <div className="w-full dropdown dropdown-hover dropdown-bottom dropdown-end">
                     <div tabIndex={0} role="button" className="btn btn-circle">
-                        <Avatar size="50" round={true} name={user?.name || 'Default Name'} />
+                        <Avatar size="42" round={true} name={user?.name || 'Default Name'} />
                     </div>
 
-                    <ul className="mt-3 z-[1] p-2 drop-shadow-2xl menu menu-md dropdown-content bg-base-100 rounded-box w-60">
+                    <ul className="mt-1 z-[1] p-2 drop-shadow-2xl menu menu-md dropdown-content bg-base-100 rounded-box w-60">
                         <li>
                             <a href="/profile" className="text-lg hover:text-lime-700">
                                 <CgProfile className="w-5 h-5" /> Thông tin tài khoản

@@ -40,7 +40,11 @@ func AddQueryData(ctx *gin.Context, query *gorm.DB, customParams map[string]inte
 		value := values.Field(i)
 
 		if value.Interface() != nil && value.Interface() != "" {
-			query = query.Where(fmt.Sprintf("%s = ?", field.Name), value.Interface())
+			if field.Name == "type" && value.Kind() == reflect.Slice {
+				query = query.Where(fmt.Sprintf("%s IN (?)", field.Name), value.Interface())
+			} else {
+				query = query.Where(fmt.Sprintf("%s = ?", field.Name), value.Interface())
+			}
 		}
 	}
 

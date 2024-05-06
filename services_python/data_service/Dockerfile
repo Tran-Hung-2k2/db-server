@@ -11,7 +11,7 @@ COPY services_python ./services_python
     # && apt-get clean
 
 # Cài đặt các thư viện Python từ file requirements.txt
-# RUN pip install --upgrade pip
+RUN pip install --upgrade pip
 RUN pip install -r services_python/data_service/requirements.txt
 
 # Mở cổng 8080 trên container
