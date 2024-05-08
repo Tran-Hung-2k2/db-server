@@ -143,7 +143,9 @@ def create_pipelines(
     db: Session,
     request: Request,
 ):
-    new_record = Pipeline(name=data.name, pipeline_type=data.type, user_id=request.state.id)
+    new_record = Pipeline(
+        name=data.name, pipeline_type=data.type, user_id=request.state.id
+    )
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
@@ -224,7 +226,16 @@ def delete_one_pipeline(
     db: Session,
     request: Request,
 ):
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}"
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(Pipeline.name == uuid & Pipeline.user_id == request.state.id)
+        .first()
+    )
+    if not exist_pipeline:
+        raise MyException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy pipeline."
+        )
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{exist_pipeline.id}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
@@ -234,7 +245,7 @@ def delete_one_pipeline(
             "created_at": pipeline.get("created_at"),
             "updated_at": pipeline.get("updated_at"),
             "description": pipeline.get("description"),
-            "name": pipeline.get("name"),
+            "name": exist_pipeline.name,
             "settings": pipeline.get("settings"),
             "tags": pipeline.get("tags"),
             "type": pipeline.get("type"),
@@ -246,6 +257,8 @@ def delete_one_pipeline(
         extracted_data = {"pipelines": [extracted_pipeline], "metadata": None}
         detail = []
         message = "Xóa pipelines thành công"
+        db.delete(exist_pipeline)
+        db.commit()
         return JSONResponse(
             content={
                 "data": extracted_data,

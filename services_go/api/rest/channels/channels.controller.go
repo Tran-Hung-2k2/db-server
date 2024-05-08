@@ -54,7 +54,7 @@ func GetChannel(ctx *gin.Context) {
 	sort_dim := ctx.DefaultQuery("sort_dim", "desc")
 	name := ctx.DefaultQuery("name", "")
 
-	if !utils.Contains(sort_by, []string{"id", "created_at", "updated_at", "user_id", "name", "type", "description", "config"}) {
+	if !utils.Contains(sort_by, []string{"id", "created_at", "updated_at", "user_id", "name", "type", "description"}) {
 		sort_by = "created_at"
 	}
 	if !utils.Contains(sort_dim, []string{"asc", "desc"}) {
