@@ -11,7 +11,7 @@ import uvicorn  # type: ignore
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from services_python.mage_service.app.api.v1 import router
+from services_python.mage_service.app.api import router
 
 from services_python.mage_service.app.database import engine
 from services_python.mage_service.app.models import Base

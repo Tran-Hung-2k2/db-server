@@ -18,7 +18,7 @@ LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
 
 @handle_database_errors
-def get_datasets(db: Session, request: Request):
+async def get_datasets(db: Session, request: Request):
     ALLOWED_FILTER_FIELDS = {"id", "user_id"}
     query_params = dict(request.query_params)
 
@@ -69,7 +69,7 @@ def get_datasets(db: Session, request: Request):
 
 
 @handle_database_errors
-def query_table_datasets(db: Session, request: Request):
+async def query_table_datasets(db: Session, request: Request):
     query_params = dict(request.query_params)
     user_id = request.state.id
     dataset_id = query_params.get("dataset_id")
@@ -113,7 +113,7 @@ def query_table_datasets(db: Session, request: Request):
 
 
 @handle_database_errors
-def create_dataset(db: Session, data: schemas.DatasetCreate, request: Request):
+async def create_dataset(db: Session, data: schemas.DatasetCreate, request: Request):
     data.user_id = request.state.id
     new_record = Dataset(**data.dict())
     db.add(new_record)
@@ -131,7 +131,7 @@ def create_dataset(db: Session, data: schemas.DatasetCreate, request: Request):
 
 
 @handle_database_errors
-def create_dataset_upload_file(
+async def create_dataset_upload_file(
     db: Session, file_data: UploadFile, data: schemas.DatasetCreate, request: Request
 ):
     data.user_id = request.state.id
@@ -153,7 +153,7 @@ def create_dataset_upload_file(
 
 
 @handle_database_errors
-def update_dataset(
+async def update_dataset(
     db: Session, id: int, updated_data: schemas.DatasetUpdate, request: Request
 ):
     # Kiểm tra xem dataset tồn tại hay không
@@ -192,7 +192,7 @@ def update_dataset(
 
 
 @handle_database_errors
-def delete_dataset(db: Session, id: int, request: Request):
+async def delete_dataset(db: Session, id: int, request: Request):
     # Kiểm tra xem dataset tồn tại hay không
     exist_dataset = db.query(Dataset).filter(Dataset.id == id).first()
     if not exist_dataset:

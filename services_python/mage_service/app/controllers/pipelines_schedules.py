@@ -23,7 +23,7 @@ from services_python.mage_service.constants import HOST, PORT, API_KEY
 # HANDLE PIPELINES RUNS
 
 @handle_database_errors
-def get_all_runs(
+async def get_all_runs(
     db: Session, 
     request: Request):
     url = f"http://{HOST}:{PORT}/api/pipelines"
@@ -36,7 +36,7 @@ def get_all_runs(
     )
 
 # @handle_database_errors
-# def get_one_pipelines(
+# async def get_one_pipelines(
 #     uuid: str,
 #     db: Session, 
 #     request: Request):
@@ -50,7 +50,7 @@ def get_all_runs(
 #     )
 
 # @handle_database_errors
-# def create_pipelines(
+# async def create_pipelines(
 #     db: Session, 
 #     request: Request):
 
@@ -84,7 +84,7 @@ def get_all_runs(
 #     )
 
 # @handle_database_errors
-# def delete_one_pipeline(
+# async def delete_one_pipeline(
 #     uuid: str,
 #     db: Session, 
 #     request: Request):

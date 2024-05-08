@@ -22,7 +22,7 @@ async def get_all_runs(
     request: Request,
     # db: Session = Depends(get_session),
 ):
-    return ctl.get_all_runs(
+    return await ctl.get_all_runs(
         uuid,
         # db,
         request,
@@ -37,7 +37,7 @@ async def get_all_runs(
 #     data: schemas.DatasetCreate,
 #     # db: Session = Depends(get_session),
 # ):
-#     return ctl.create_block(
+#     return await ctl.create_block(
 #         # db,
 #         data,
 #         request,
@@ -54,7 +54,7 @@ async def get_all_runs(
 #     data: schemas.DatasetCreate,
 #     # db: Session = Depends(get_session),
 # ):
-#     return ctl.update_block(
+#     return await ctl.update_block(
 #         # db,
 #         uuid,
 #         block_uuid,
@@ -71,7 +71,7 @@ async def get_all_runs(
 #     block_uuid: str,
 #     # db: Session = Depends(get_session)
 # ):
-#     return ctl.delete_one_block(
+#     return await ctl.delete_one_block(
 #         # db,
 #         uuid,
 #         block_uuid,

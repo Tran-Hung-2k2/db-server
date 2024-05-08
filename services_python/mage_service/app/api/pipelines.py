@@ -19,7 +19,7 @@ async def get_all_pipelines(
     db: Session = Depends(get_session),
 ):
 
-    return ctl.get_all_pipelines(
+    return await ctl.get_all_pipelines(
         db=db,
         request=request
     )
@@ -31,7 +31,7 @@ async def get_one_pipeline(
     request: Request,
     db: Session = Depends(get_session),
 ):
-    return ctl.get_one_pipeline(
+    return await ctl.get_one_pipeline(
         uuid=uuid,
         db=db,
         request=request,
@@ -44,7 +44,7 @@ async def create_pipelines(
     data: schemas.PipelineCreate,
     db: Session = Depends(get_session),
 ):
-    return ctl.create_pipelines(
+    return await ctl.create_pipelines(
         db=db,
         data=data,
         request=request,
@@ -57,7 +57,7 @@ async def delete_one_pipeline(
     uuid: str,
     db: Session = Depends(get_session)
 ):
-    return ctl.delete_one_pipeline(
+    return await ctl.delete_one_pipeline(
         db=db,
         uuid=uuid,
         request=request,
@@ -76,7 +76,7 @@ async def get_one_block(
     request: Request,
     db: Session = Depends(get_session),
 ):
-    return ctl.get_one_block(
+    return await ctl.get_one_block(
         uuid=uuid,
         block_uuid=block_uuid,
         db=db,
@@ -93,7 +93,7 @@ async def create_block(
     data: schemas.BlockCreate,
     db: Session = Depends(get_session),
 ):
-    return ctl.create_block(
+    return await ctl.create_block(
         uuid=uuid,
         db=db,
         data=data,
@@ -111,7 +111,7 @@ async def update_block(
     data: schemas.BlockUpdate,
     db: Session = Depends(get_session),
 ):
-    return ctl.update_block(
+    return await ctl.update_block(
         db=db,
         uuid=uuid,
         block_uuid=block_uuid,
@@ -129,7 +129,7 @@ async def delete_one_block(
     block_uuid: str,
     db: Session = Depends(get_session)
 ):
-    return ctl.delete_one_block(
+    return await ctl.delete_one_block(
         db=db,
         uuid=uuid,
         block_uuid=block_uuid,
@@ -148,7 +148,7 @@ async def get_all_pipeline_schedules(
     request: Request,
     db: Session = Depends(get_session),
 ):
-    return ctl.get_all_pipeline_schedules(
+    return await ctl.get_all_pipeline_schedules(
         uuid=uuid,
         db=db,
         request=request,
@@ -164,7 +164,7 @@ async def create_pipeline_schedules(
     data: schemas.PipelineScheduleCreate,
     db: Session = Depends(get_session),
 ):
-    return ctl.create_pipeline_schedules(
+    return await ctl.create_pipeline_schedules(
         uuid=uuid,
         db=db,
         data=data,
@@ -183,7 +183,7 @@ async def update_pipeline_schedules(
     data: schemas.PipelineUpdate,
     db: Session = Depends(get_session),
 ):
-    return ctl.update_pipeline_schedules(
+    return await ctl.update_pipeline_schedules(
         uuid=uuid,
         pipeline_schedules_uuid=pipeline_schedules_uuid,
         db=db,
@@ -202,7 +202,7 @@ async def delete_one_pipeline_schedules(
     pipeline_schedules_uuid: str,
     db: Session = Depends(get_session)
 ):
-    return ctl.delete_one_pipeline_schedules(
+    return await ctl.delete_one_pipeline_schedules(
         db=db,
         uuid=uuid,
         pipeline_schedules_uuid=pipeline_schedules_uuid,

@@ -17,7 +17,7 @@ async def get_datasets(
     db: Session = Depends(get_session),
 ):
 
-    return ctl.get_datasets(db, request)
+    return await ctl.get_datasets(db, request)
 
 
 @router.get("/query", dependencies=[Depends(middlewares.verify_all)])
@@ -25,7 +25,7 @@ async def query_table_datasets(
     request: Request,
     db: Session = Depends(get_session),
 ):
-    return ctl.query_table_datasets(db, request)
+    return await ctl.query_table_datasets(db, request)
 
 
 @router.post("/", dependencies=[Depends(middlewares.verify_user)])
@@ -34,7 +34,7 @@ async def create_dataset(
     data: schemas.DatasetCreate,
     db: Session = Depends(get_session),
 ):
-    return ctl.create_dataset(
+    return await ctl.create_dataset(
         db,
         data,
         request,
@@ -52,7 +52,7 @@ async def create_dataset_upload_file(
     # Ép kiểu dữ liệu từ str thành dict
     other_dict = json.loads(other) if other else None
 
-    return ctl.create_dataset_upload_file(
+    return await ctl.create_dataset_upload_file(
         db,
         file_data,
         schemas.DatasetCreate(name=name, other=other_dict),
@@ -66,7 +66,7 @@ async def run_dataset(
     id: UUID4,
     db: Session = Depends(get_session),
 ):
-    return ctl.run_dataset(db, id, request)
+    return await ctl.run_dataset(db, id, request)
 
 
 @router.patch("/{id}", dependencies=[Depends(middlewares.verify_user)])
@@ -76,11 +76,11 @@ async def update_dataset(
     data: schemas.DatasetUpdate,
     db: Session = Depends(get_session),
 ):
-    return ctl.update_dataset(db, id, data, request)
+    return await ctl.update_dataset(db, id, data, request)
 
 
 @router.delete("/{id}", dependencies=[Depends(middlewares.verify_user)])
 async def delete_dataset(
     request: Request, id: UUID4, db: Session = Depends(get_session)
 ):
-    return ctl.delete_dataset(db, id, request)
+    return await ctl.delete_dataset(db, id, request)

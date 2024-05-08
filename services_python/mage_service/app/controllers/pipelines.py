@@ -26,7 +26,7 @@ MAGE_API_KEY = os.getenv("MAGE_API_KEY", "zkWlN0PkIKSN0C11CfUHUj84OT5XOJ6tDZ6bDR
 
 
 @handle_database_errors
-def get_all_pipelines(
+async def get_all_pipelines(
     db: Session,
     request: Request,
 ):
@@ -74,7 +74,7 @@ def get_all_pipelines(
 
 
 @handle_database_errors
-def get_one_pipeline(
+async def get_one_pipeline(
     uuid: str,
     db: Session,
     request: Request,
@@ -133,7 +133,7 @@ def get_one_pipeline(
 
 
 @handle_database_errors
-def create_pipelines(
+async def create_pipelines(
     data: schemas.PipelineCreate,
     db: Session,
     request: Request,
@@ -216,7 +216,7 @@ def create_pipelines(
 
 
 @handle_database_errors
-def delete_one_pipeline(
+async def delete_one_pipeline(
     uuid: str,
     db: Session,
     request: Request,
@@ -277,7 +277,7 @@ def delete_one_pipeline(
 
 # HANDLE BLOCKS
 @handle_database_errors
-def get_one_block(
+async def get_one_block(
     uuid: str,
     block_uuid: str,
     db: Session,
@@ -332,7 +332,7 @@ def get_one_block(
     )
 
 
-def get_block_content(block_type, source_type, source_config):
+async def get_block_content(block_type, source_type, source_config):
     if block_type == "data_loader":
         if source_type == "postgres":
             from services_python.mage_service.template.datasource.postgres import (
@@ -357,7 +357,7 @@ def get_block_content(block_type, source_type, source_config):
 
 
 @handle_database_errors
-def create_block(
+async def create_block(
     uuid: str,
     data: schemas.BlockCreate,
     db: Session,
@@ -436,7 +436,7 @@ def create_block(
 
 
 @handle_database_errors
-def update_block(
+async def update_block(
     uuid: str,
     block_uuid: str,
     data: schemas.BlockUpdate,
@@ -524,7 +524,7 @@ def update_block(
 
 
 @handle_database_errors
-def delete_one_block(
+async def delete_one_block(
     uuid: str,
     block_uuid: str,
     db: Session,
@@ -579,7 +579,7 @@ def delete_one_block(
 
 
 @handle_database_errors
-def get_all_pipeline_schedules(
+async def get_all_pipeline_schedules(
     uuid: str,
     db: Session,
     request: Request,
@@ -638,7 +638,7 @@ def get_all_pipeline_schedules(
 
 
 @handle_database_errors
-def create_pipeline_schedules(
+async def create_pipeline_schedules(
     uuid: str,
     data: schemas.PipelineScheduleCreate,
     db: Session,
@@ -719,7 +719,7 @@ def create_pipeline_schedules(
 
 
 @handle_database_errors
-def update_pipeline_schedules(
+async def update_pipeline_schedules(
     pipeline_schedules_uuid: str,
     data: schemas.PipelineScheduleUpdate,
     uuid: str,
@@ -815,7 +815,7 @@ def update_pipeline_schedules(
 
 
 @handle_database_errors
-def delete_one_pipeline_schedules(
+async def delete_one_pipeline_schedules(
     uuid: str,
     pipeline_schedules_uuid: str,
     db: Session,
