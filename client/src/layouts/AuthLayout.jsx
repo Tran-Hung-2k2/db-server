@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import image from '@assets/images/signin.svg';
 
 export default function AuthLayout({ children }) {

@@ -26,6 +26,7 @@ func InitRouter() *gin.Engine {
 	v1 := r.Group(basePath)
 	{
 		v1.GET("/", validations.GetChannel(), middlewares.VerifyAll(), GetChannel)
+		v1.GET("/values", validations.GetChannelDistinctValues(), middlewares.VerifyAll(), GetChannelDistinctValues)
 		v1.POST("/", validations.CreateChannel(), middlewares.VerifyUser(), CreateChannel)
 		v1.PATCH("/:id", validations.UpdateChannel(), middlewares.VerifyUser(), UpdateChannel)
 		v1.DELETE("/:id", middlewares.VerifyUser(), DeleteChannel)

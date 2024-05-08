@@ -43,7 +43,7 @@ export default function Component({ fields, title, onSubmit, children }) {
                                         <textarea
                                             {...field}
                                             onChange={handleChange}
-                                            className="w-full h-12 leading-6 textarea textarea-primary"
+                                            className={`w-full h-12 leading-6 textarea textarea-primary ${field.className}`}
                                         ></textarea>
                                     );
                                 case 'checkbox':

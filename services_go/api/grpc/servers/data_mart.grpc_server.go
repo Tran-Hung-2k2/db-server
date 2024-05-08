@@ -38,7 +38,6 @@ func (server *DataMartServiceServer) GetDataMart(ctx context.Context, req *pb.Ge
 			"id":      data.ID.String(),
 			"user_id": data.UserID.String(),
 			"name":    data.Name,
-			"type":    string(data.Type),
 			"schema":  string(data.Schema),
 		},
 	}, nil

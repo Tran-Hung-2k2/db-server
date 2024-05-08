@@ -3,6 +3,7 @@ import { LuBrainCircuit } from 'react-icons/lu';
 import { FiDatabase } from 'react-icons/fi';
 import { LuWorkflow } from 'react-icons/lu';
 import { MdOutlineDataExploration } from 'react-icons/md';
+import { TbClipboardData } from 'react-icons/tb';
 
 import label from './label';
 
@@ -19,6 +20,7 @@ const menuItem = [
             },
         ],
         icon: <GrUserManager />,
+        bigIcon: <GrUserManager size={30} />,
     },
     {
         title: 'Nguồn dữ liệu',
@@ -30,7 +32,8 @@ const menuItem = [
                 role: [label.role.USER],
             },
         ],
-        icon: <MdOutlineDataExploration />,
+        icon: <MdOutlineDataExploration size={23} />,
+        bigIcon: <MdOutlineDataExploration size={30} />,
     },
     {
         title: 'Kho dữ liệu',
@@ -42,7 +45,21 @@ const menuItem = [
                 role: [label.role.USER],
             },
         ],
-        icon: <FiDatabase />,
+        icon: <FiDatabase size={21} />,
+        bigIcon: <FiDatabase size={28} />,
+    },
+    {
+        title: 'Tập dữ liệu',
+        role: [...Object.values(label.role)],
+        child: [
+            {
+                path: '/datasets/manage',
+                title: 'Quản lý tập dữ liệu',
+                role: [label.role.USER],
+            },
+        ],
+        icon: <TbClipboardData size={23} />,
+        bigIcon: <TbClipboardData size={30} />,
     },
     {
         title: 'Pipelines',
@@ -54,7 +71,8 @@ const menuItem = [
                 role: [label.role.USER],
             },
         ],
-        icon: <LuWorkflow />,
+        icon: <LuWorkflow size={23} />,
+        bigIcon: <LuWorkflow size={30} />,
     },
     {
         title: 'AI/ML',
@@ -71,7 +89,8 @@ const menuItem = [
                 role: [label.role.USER],
             },
         ],
-        icon: <LuBrainCircuit />,
+        icon: <LuBrainCircuit size={23} />,
+        bigIcon: <LuBrainCircuit size={30} />,
     },
     {
         label: 'OTHER',

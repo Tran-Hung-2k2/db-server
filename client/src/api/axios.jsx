@@ -7,6 +7,7 @@ const SERVER_URL = import.meta.env.VITE_REACT_APP_API_KEY;
 const api_notify = [
     { url: '/api/auth', methods: ['post'] },
     { url: '/api/channels', methods: ['post', 'patch', 'delete'] },
+    { url: '/api/data_marts', methods: ['post', 'patch', 'delete'] },
 ];
 
 const service = axios.create({

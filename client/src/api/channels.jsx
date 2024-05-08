@@ -1,6 +1,23 @@
 import axios from './axios';
 
 const api = {
+    getValues: async (params) => {
+        const queryParams = ['field'];
+        const paramsObject = {};
+
+        if (params) {
+            queryParams.forEach((param) => {
+                if (params[param]) {
+                    paramsObject[param] = params[param];
+                }
+            });
+        }
+
+        const response = await axios.get('/api/channels/values', { withCredentials: true, params: paramsObject });
+
+        return response.data;
+    },
+
     getChannel: async (params) => {
         const queryParams = ['id', 'user_id', 'type', 'limit', 'skip', 'sort_by', 'sort_dim', 'name'];
         const paramsObject = {};

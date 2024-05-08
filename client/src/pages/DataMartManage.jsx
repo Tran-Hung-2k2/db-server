@@ -9,18 +9,17 @@ import { FiPlus } from 'react-icons/fi';
 import { IoClose } from 'react-icons/io5';
 
 import Loader from '@components/Loader';
-import ChannelDetail from '@/components/ChannelDetail';
-import ChannelCreate from '@/components/ChannelCreate';
+import DataMartCreate from '@/components/DataMartCreate';
+import DataMartDetail from '@/components/DataMartDetail';
 
-import api from '@api/channels';
+import api from '@/api/data_marts';
 
 import convertTime from '@/utils/convertTime';
 import confirm from '@/utils/confirm';
 
-import avatars from '@/constants/channel_type_image';
 import recordPerPage from '@/constants/record_per_page';
 import Pagination from '@/components/Pagination';
-import Filter from '@/components/Filter';
+import { ToastContainer } from 'react-toastify';
 
 export default function Page() {
     const [loading, setLoading] = useState(false);
@@ -38,18 +37,15 @@ export default function Page() {
     const [id, setID] = useState('');
     const [dataList, setDataList] = useState([]);
 
-    const [filter, setFilter] = useState({});
-
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const res = await api.getChannel({
+            const res = await api.getDataMart({
                 limit,
                 skip,
                 sort_by: sortBy,
                 sort_dim: sortDim,
                 name: searchText,
-                ...filter,
             });
             setTotal(res.data?.total);
             setDataList(res.data?.data);
@@ -57,14 +53,14 @@ export default function Page() {
         };
 
         fetchData();
-    }, [reload, limit, skip, sortBy, sortDim, searchText, filter]);
+    }, [reload, limit, skip, sortBy, sortDim, searchText]);
 
     function deleteObj(id) {
         confirm({
-            title: 'Xóa nguồn dữ liệu',
-            message: `Xác nhận xóa vĩnh viễn nguồn dữ liệu.`,
+            title: 'Xóa kho dữ liệu',
+            message: `Xác nhận xóa vĩnh viễn kho dữ liệu.`,
             onConfirm: async () => {
-                await api.deleteChannel(id);
+                await api.deleteDataMart(id);
                 setReload(!reload);
             },
         });
@@ -98,35 +94,27 @@ export default function Page() {
     return (
         <>
             <div className="flex-grow px-8 py-2">
-                <dialog id="channel_create" className="modal">
-                    <ChannelCreate reload={reload} setReload={setReload} />
+                <dialog id="data_mart_create" className="modal">
+                    <ToastContainer containerId="data_mart_create" style={{ zIndex: 9999 }} position="top-right" />
+                    <DataMartCreate reload={reload} setReload={setReload} />
                 </dialog>
-                <dialog id="channel_detail" className="modal">
-                    <ChannelDetail id={id} reload={reload} setReload={setReload} />
+                <dialog id="data_mart_detail" className="modal">
+                    <ToastContainer containerId="data_mart_detail" style={{ zIndex: 9999 }} position="top-right" />
+                    <DataMartDetail id={id} reload={reload} setReload={setReload} />
                 </dialog>
                 {/* Title */}
-                <h3 className="pb-4 text-xl font-bold text-neutral">Quản lý nguồn dữ liệu</h3>
+                <h3 className="pb-4 text-xl font-bold text-neutral">Quản lý kho dữ liệu</h3>
 
                 {/* Action bar*/}
                 <div className="flex justify-between">
                     <div className="flex flex-row gap-2 pb-4">
                         <button
                             className="h-10 py-2 font-bold text-white btn-sm btn btn-primary"
-                            onClick={() => document.getElementById('channel_create').showModal()}
+                            onClick={() => document.getElementById('data_mart_create').showModal()}
                         >
                             <FiPlus className="text-xl" />
                             Tạo mới
                         </button>
-
-                        <Filter
-                            filter={filter}
-                            setFilter={setFilter}
-                            getValues={api.getValues}
-                            filterFields={[
-                                { name: 'type', label: 'Kiểu' },
-                                { name: 'name', label: 'Tên' },
-                            ]}
-                        />
 
                         <label className="flex items-center h-10 gap-2 py-2 pl-2 w-fit input input-primary focus-within:outline-none focus-within:ring-primary focus-within:ring-1">
                             <IoSearch className="opacity-70" size={20} />
@@ -184,9 +172,7 @@ export default function Page() {
                             <thead className="bg-zinc-100">
                                 <tr>
                                     <th className="py-2 text-base text-center"></th>
-                                    <th className="py-2 pl-0 text-base"></th>
                                     <SortableColumn className="py-2" name="name" label="Tên" />
-                                    <SortableColumn className="py-2" name="type" label="Loại" />
                                     <SortableColumn className="py-2" name="description" label="Mô tả" />
                                     <SortableColumn className="py-2" name="created_at" label="Thời gian tạo" />
                                     <SortableColumn className="py-2" name="updated_at" label="Lần sửa đổi cuối" />
@@ -196,39 +182,27 @@ export default function Page() {
                             <tbody>
                                 {dataList?.map((data, index) => (
                                     <tr key={index}>
-                                        <td className="py-0 text-center">
+                                        <td className="py-2 text-center">
                                             <div className="text-base font-semibold">
                                                 {parseInt(index) + parseInt(skip) + 1}
                                             </div>
                                         </td>
-                                        <td className="py-0 pl-0">
-                                            <div className="avatar">
-                                                <div className="w-8 h-8 mask mask-squircle">
-                                                    <img src={avatars[data?.type]} alt="Channel" />
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
+                                        <td className='p-0'>
                                             <div>
                                                 <div className="text-base font-semibold">{data?.name}</div>
                                             </div>
                                         </td>
-                                        <td className="py-0 min-w-44">
-                                            <span className="font-semibold badge badge-ghost badge-base h-fit ">
-                                                {data?.type}
-                                            </span>
-                                        </td>
-                                        <td className="py-0 text-justify min-w-56">{data?.description}</td>
-                                        <td className="py-0 font-mono">{convertTime(data?.created_at)}</td>
-                                        <td className="py-0 font-mono">{convertTime(data?.updated_at)}</td>
+                                        <td className="py-2 text-justify min-w-60">{data?.description}</td>
+                                        <td className="py-2 font-mono">{convertTime(data?.created_at)}</td>
+                                        <td className="py-2 font-mono">{convertTime(data?.updated_at)}</td>
 
-                                        <td className="py-0 ">
+                                        <td className="py-2 ">
                                             <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Chi tiết">
                                                 <button
                                                     className="text-xl bg-white border-none btn btn-xs btn-ghost text-success hover:bg-success hover:text-white"
                                                     onClick={() => {
                                                         setID(data?.id);
-                                                        document.getElementById('channel_detail').showModal();
+                                                        document.getElementById('data_mart_detail').showModal();
                                                     }}
                                                 >
                                                     <MdOutlineRateReview />

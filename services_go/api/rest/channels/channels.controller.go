@@ -17,6 +17,25 @@ import (
 
 var LIMIT_RECORD = utils.GetEnv("LIMIT_RECORD", "50")
 
+func GetChannelDistinctValues(ctx *gin.Context) {
+	field := ctx.DefaultQuery("field", "")
+
+	if field == "" {
+		ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách giá trị thành công.", nil, ""))
+		return
+	}
+
+	var records []string
+	result := db.DB.Model(&models.Channel{}).Distinct(field).Pluck(field, &records)
+
+	if result.Error != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách giá trị thành công.", records, ""))
+}
+
 func GetChannel(ctx *gin.Context) {
 	// Khởi tạo truy vấn
 	var query *gorm.DB
@@ -54,7 +73,7 @@ func GetChannel(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách channel thành công.", gin.H{"data": records, "limit": limit, "skip": skip, "total": total}, ""))
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách nguồn dữ liệu thành công.", gin.H{"data": records, "limit": limit, "skip": skip, "total": total}, ""))
 }
 
 func CreateChannel(ctx *gin.Context) {
@@ -71,7 +90,7 @@ func CreateChannel(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
-	ctx.JSON(http.StatusCreated, utils.MakeResponse("Tạo channel thành công.", record, ""))
+	ctx.JSON(http.StatusCreated, utils.MakeResponse("Tạo nguồn dữ liệu thành công.", record, ""))
 }
 
 func UpdateChannel(ctx *gin.Context) {
@@ -88,36 +107,53 @@ func UpdateChannel(ctx *gin.Context) {
 	result := db.DB.Where("id = ?", id).First(&existingRecord)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Không tìm thấy channel."})
+			ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy nguồn dữ liệu.", nil, result.Error.Error()))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
 	if existingRecord.UserID != uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY)) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Bạn không có quyền truy cập tài nguyên này."})
+		ctx.JSON(http.StatusForbidden, utils.MakeResponse("Bạn không có quyền truy cập tài nguyên này.", nil, ""))
 		return
 	}
 
 	// Cập nhật chỉ các trường cần thiết
 	db.DB.Model(&models.Channel{}).Where("id = ?", id).Select("Name", "Description", "Config").Updates(&record)
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Cập nhật thông tin channel thành công", "data": record})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Cập nhật thông tin nguồn dữ liệu thành công.", record, ""))
 }
 
 func DeleteChannel(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	result := db.DB.Where("id = ?", id).Delete(&models.Channel{})
+	// Kiểm tra user_id trước khi update
+	existingRecord := models.Channel{}
+	result := db.DB.Where("id = ?", id).First(&existingRecord)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy nguồn dữ liệu.", nil, result.Error.Error()))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
+		return
+	}
+
+	if existingRecord.UserID != uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY)) {
+		ctx.JSON(http.StatusForbidden, utils.MakeResponse("Bạn không có quyền truy cập tài nguyên này.", nil, ""))
+		return
+	}
+
+	result = db.DB.Where("id = ?", id).Delete(&models.Channel{})
 
 	if result.RowsAffected == 0 {
-		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy channel.", nil, ""))
+		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy nguồn dữ liệu.", nil, ""))
 		return
 	} else if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, utils.MakeResponse("Xóa channel thành công.", nil, ""))
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Xóa nguồn dữ liệu thành công.", nil, ""))
 }
