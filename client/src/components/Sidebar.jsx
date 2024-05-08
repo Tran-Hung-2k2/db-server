@@ -53,7 +53,7 @@ export default function Component({ className }) {
                                     item.label ? (
                                         <h3
                                             key={index}
-                                            className="pt-1 pb-1 mt-6 ml-4 text-base font-bold text-bodylight2 dark:text-white"
+                                            className="pt-1 pb-1 mt-6 ml-4 text-lg font-bold text-bodylight2 dark:text-white"
                                         >
                                             {item.label}
                                         </h3>

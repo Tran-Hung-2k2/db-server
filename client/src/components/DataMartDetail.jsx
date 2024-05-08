@@ -47,7 +47,7 @@ export default function Component({ reload, setReload, id }) {
 
     const getData = async () => {
         const res = await api.getDataMart({ id });
-        const data = res.data?.data[0];
+        const data = res.data[0];
         return {
             name: data.name,
             description: data.description,

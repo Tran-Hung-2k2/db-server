@@ -18,7 +18,19 @@ func GetBodyData(ctx *gin.Context, data interface{}) error {
 		return errors.New("not found valid data in context")
 	}
 
-	err := mapstructure.Decode(validData, &data)
+	// Create a new decoder with ErrorUnused set to false
+	config := &mapstructure.DecoderConfig{
+		Metadata:    nil,
+		Result:      &data,
+		ErrorUnused: false,
+	}
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	// Use the new decoder to decode the data
+	err = decoder.Decode(validData)
 	if err != nil {
 		return err
 	}

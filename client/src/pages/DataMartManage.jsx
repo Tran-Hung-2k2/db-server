@@ -47,8 +47,8 @@ export default function Page() {
                 sort_dim: sortDim,
                 name: searchText,
             });
-            setTotal(res.data?.total);
-            setDataList(res.data?.data);
+            setTotal(res.total);
+            setDataList(res.data);
             setLoading(false);
         };
 
@@ -187,7 +187,7 @@ export default function Page() {
                                                 {parseInt(index) + parseInt(skip) + 1}
                                             </div>
                                         </td>
-                                        <td className='p-0'>
+                                        <td className="p-0">
                                             <div>
                                                 <div className="text-base font-semibold">{data?.name}</div>
                                             </div>

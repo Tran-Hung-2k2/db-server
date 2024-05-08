@@ -1,32 +1,29 @@
 import { IoClose } from 'react-icons/io5';
 import FormEdit from './FormEdit';
-import fields from '@/constants/form/channels';
-import api from '@/api/channels';
+import fields from '@/constants/form/datasets';
+import api from '@/api/datasets';
 
 export default function Component({ reload, setReload, id }) {
     const handleSubmit = async (e, data) => {
         e.preventDefault();
-        const { name, type, description, ...config } = data;
+        const { name, description } = data;
 
         const newData = {
             name,
             description,
-            config,
         };
 
-        await api.updateChannel(newData, id);
+        await api.updateDataset(newData, id);
         setReload(!reload);
-        document.getElementById('channel_detail').close();
+        document.getElementById('dataset_detail').close();
     };
 
     const getData = async () => {
-        const res = await api.getChannel({ id });
+        const res = await api.getDataset({ id });
         const data = res.data[0];
         return {
             name: data.name,
             description: data.description,
-            type: data.type,
-            ...data.config,
         };
     };
 
@@ -43,7 +40,7 @@ export default function Component({ reload, setReload, id }) {
                     reload={id}
                     fields={fields}
                     getData={getData}
-                    title="Sửa thông tin nguồn dữ liệu"
+                    title="Sửa thông tin tập dữ liệu"
                     onSubmit={handleSubmit}
                 />
             </div>

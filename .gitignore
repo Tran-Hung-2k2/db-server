@@ -14,6 +14,9 @@ __pycache__
 *.rar
 *.tar
 
+mage/mage_data
+mage/platform_template
+
 # Client
 # Logs
 client/logs

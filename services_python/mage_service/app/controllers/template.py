@@ -4,7 +4,7 @@ from fastapi import status, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from services_python.data_service.app.models import Dataset
-import services_python.data_service.app.schemas.datamarts as schemas
+import services_python.data_service.app.schemas.datasets as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors

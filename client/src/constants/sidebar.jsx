@@ -1,14 +1,16 @@
+import { FiFolder } from 'react-icons/fi';
 import { GrUserManager } from 'react-icons/gr';
 import { LuBrainCircuit } from 'react-icons/lu';
 import { FiDatabase } from 'react-icons/fi';
 import { LuWorkflow } from 'react-icons/lu';
 import { MdOutlineDataExploration } from 'react-icons/md';
 import { TbClipboardData } from 'react-icons/tb';
+import { MdOutlineWbCloudy } from 'react-icons/md';
 
 import label from './label';
 
 const menuItem = [
-    { label: 'MENU' },
+    { label: 'DataOps' },
     {
         title: 'Người dùng',
         role: [label.role.ADMIN],
@@ -74,18 +76,27 @@ const menuItem = [
         icon: <LuWorkflow size={23} />,
         bigIcon: <LuWorkflow size={30} />,
     },
+    { label: 'MLOps' },
     {
-        title: 'AI/ML',
+        title: 'Dự án',
         role: [label.role.USER],
         child: [
             {
                 path: '/mlops/experiments/manage',
-                title: 'Experiments',
+                title: 'Quản lý dự án',
                 role: [label.role.USER],
             },
+        ],
+        icon: <FiFolder size={21} />,
+        bigIcon: <FiFolder size={30} />,
+    },
+    {
+        title: 'Mô hình',
+        role: [label.role.USER],
+        child: [
             {
                 path: '/mlops/models/manage',
-                title: 'Models',
+                title: 'Quản lý mô hình',
                 role: [label.role.USER],
             },
         ],
@@ -93,7 +104,20 @@ const menuItem = [
         bigIcon: <LuBrainCircuit size={30} />,
     },
     {
-        label: 'OTHER',
+        title: 'Triển khai',
+        role: [label.role.USER],
+        child: [
+            {
+                path: '/mlops/enpoints/manage',
+                title: 'Triển khai mô hình',
+                role: [label.role.USER],
+            },
+        ],
+        icon: <MdOutlineWbCloudy size={21} />,
+        bigIcon: <MdOutlineWbCloudy size={30} />,
+    },
+    {
+        label: 'Other',
     },
     {
         path: '/signin',

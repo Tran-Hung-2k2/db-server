@@ -153,17 +153,20 @@ def create_pipelines(
     pipeline_type = new_record.pipeline_type
     tags = str(new_record.user_id)
     description = data.description
-    if not name or not pipeline_type:
+    if not name:
         return JSONResponse(
-            content={"error": "Name and block_type are required fields."},
+            content={"message": "Tên không được bỏ trống."},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if not pipeline_type:
+        return JSONResponse(
+            content={"message": "Kiểu block không được bỏ trống."},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     if pipeline_type not in ["batch", "stream"]:
         return JSONResponse(
-            content={
-                "error": "Invalid block_type. Only 'batch' and 'stream' are allowed."
-            },
+            content={"message": "Kiểu block phải là 'batch' hoặc 'stream'."},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -194,13 +197,12 @@ def create_pipelines(
             "schedules_number": len(pipeline.get("schedules", [])),
         }
         extracted_data = {"pipelines": [extracted_pipeline], "metadata": None}
-        detail = []
-        message = "Tạo pipelines thành công"
+
         return JSONResponse(
             content={
                 "data": extracted_data,
-                "detail": detail,
-                "message": message,
+                "detail": "",
+                "message": "Tạo pipelines thành công",
             },
             status_code=status.HTTP_200_OK,
         )
@@ -255,27 +257,24 @@ def delete_one_pipeline(
             "schedules_number": len(pipeline.get("schedules", [])),
         }
         extracted_data = {"pipelines": [extracted_pipeline], "metadata": None}
-        detail = []
+    
         message = "Xóa pipelines thành công"
         db.delete(exist_pipeline)
         db.commit()
         return JSONResponse(
             content={
                 "data": extracted_data,
-                "detail": detail,
+                "detail": '',
                 "message": message,
             },
             status_code=status.HTTP_200_OK,
         )
     else:
-        extracted_data = {}
-        detail = data_dict["error"]["exception"]
-        message = "Xóa pipelines thất bại"
         return JSONResponse(
             content={
-                "data": extracted_data,
-                "detail": detail,
-                "message": message,
+                "data": None,
+                "detail": data_dict["error"]["exception"],
+                "message": "Xóa pipeline thất bại",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -401,7 +400,7 @@ def create_block(
             ],
             "metadata": data_dict["metadata"],
         }
-        detail = []
+    
         message = "Tạo block thành công"
         return JSONResponse(
             content={
@@ -493,7 +492,7 @@ def update_block(
             ],
             "metadata": data_dict["metadata"],
         }
-        detail = []
+    
         message = "Sửa block thành công"
         return JSONResponse(
             content={
@@ -546,7 +545,7 @@ def delete_one_block(
             ],
             "metadata": data_dict["metadata"],
         }
-        detail = []
+    
         message = "Xóa block thành công"
         return JSONResponse(
             content={
@@ -690,7 +689,7 @@ def create_pipeline_schedules(
             ],
             "metadata": data_dict["metadata"],
         }
-        detail = []
+    
         message = "Tạo schedule thành công"
         return JSONResponse(
             content={
@@ -786,7 +785,7 @@ def update_pipeline_schedules(
             ],
             "metadata": data_dict["metadata"],
         }
-        detail = []
+    
         message = "Sửa schedule thành công"
         return JSONResponse(
             content={
@@ -849,7 +848,7 @@ def delete_one_pipeline_schedules(
             ],
             "metadata": data_dict["metadata"],
         }
-        detail = []
+    
         message = "Xóa schedule thành công"
         return JSONResponse(
             content={

@@ -3,21 +3,21 @@ from pydantic import UUID4
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
-import services_python.data_service.app.controllers.datamarts as ctl
-import services_python.data_service.app.schemas.datamarts as schemas
+import services_python.data_service.app.controllers.datasets as ctl
+import services_python.data_service.app.schemas.datasets as schemas
 import services_python.middlewares.auth as middlewares
 from services_python.data_service.app.database import get_session
 
-router = APIRouter(prefix="/datamarts", tags=["Datasets"])
+router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
 
 @router.get("/", dependencies=[Depends(middlewares.verify_all)])
-async def get_datamarts(
+async def get_datasets(
     request: Request,
     db: Session = Depends(get_session),
 ):
 
-    return ctl.get_datamarts(db, request)
+    return ctl.get_datasets(db, request)
 
 
 @router.get("/query", dependencies=[Depends(middlewares.verify_all)])
@@ -69,7 +69,7 @@ async def run_dataset(
     return ctl.run_dataset(db, id, request)
 
 
-@router.put("/{id}", dependencies=[Depends(middlewares.verify_user)])
+@router.patch("/{id}", dependencies=[Depends(middlewares.verify_user)])
 async def update_dataset(
     request: Request,
     id: UUID4,

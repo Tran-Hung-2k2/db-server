@@ -39,8 +39,18 @@ exreq:
 	pip freeze > services_python/data_service/requirements.txt
 
 # Run Service
+ifeq ($(OS),Windows_NT)
+PYTHON=python
+else
+PYTHON=python3
+endif
+
+# Run Service
 magesrv:
-	python3 services_python/mage_service/app/main.py
+	$(PYTHON) services_python/mage_service/app/main.py
+
+setsrv:
+	$(PYTHON) services_python/data_service/app/main.py
 
 authsrv: 
 	cd services_go && go run cmd/auth/main.go

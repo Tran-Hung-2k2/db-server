@@ -21,6 +21,6 @@ type CreateChannelRequest struct {
 
 type UpdateChannelRequest struct {
 	Name        string          `form:"name" validate:"omitempty"`
-	Description string          `form:"description"`
+	Description string          `form:"description" validate:"omitempty"`
 	Config      json.RawMessage `form:"config" validate:"omitempty"`
 }

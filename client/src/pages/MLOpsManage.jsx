@@ -15,7 +15,6 @@ export default function Page() {
         const fetchData = async () => {
             setLoading(true);
             const res = await api.getExperiments();
-            console.log(res.experiments);
             const sortedList = _.orderBy(res.experiments, ['name'], 'asc');
             setDataList(sortedList);
             setLoading(false);

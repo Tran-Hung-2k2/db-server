@@ -73,7 +73,7 @@ func GetChannel(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách nguồn dữ liệu thành công.", gin.H{"data": records, "limit": limit, "skip": skip, "total": total}, ""))
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách nguồn dữ liệu thành công.", map[string]interface{}{"data": records, "limit": limit, "skip": skip, "total": total}, ""))
 }
 
 func CreateChannel(ctx *gin.Context) {

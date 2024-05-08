@@ -9,12 +9,12 @@ type GetDataMartRequest struct {
 
 type CreateDataMartRequest struct {
 	Name        string          `form:"name" validate:"required"`
-	Description string          `form:"description"`
+	Description string          `form:"description" validate:"omitempty"`
 	Schema      json.RawMessage `form:"schema" validate:"required"`
 }
 
 type UpdateDataMartRequest struct {
 	Name        string          `form:"name" validate:"omitempty"`
-	Description string          `form:"description"`
+	Description string          `form:"description" validate:"omitempty"`
 	Schema      json.RawMessage `form:"schema" validate:"omitempty"`
 }

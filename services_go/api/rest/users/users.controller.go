@@ -38,7 +38,7 @@ func GetUser(ctx *gin.Context) {
 	var resData []schemas.GetUserResponse
 	copier.Copy(&resData, &users)
 
-	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách người dùng thành công.", gin.H{"data": resData, "limit": limit, "skip": skip, "total": total}, ""))
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách người dùng thành công.", map[string]interface{}{"data": resData, "limit": limit, "skip": skip, "total": total}, ""))
 }
 
 func DeleteUser(ctx *gin.Context) {
