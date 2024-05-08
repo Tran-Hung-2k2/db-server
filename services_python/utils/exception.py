@@ -7,4 +7,7 @@ class MyException(HTTPException):
 
 
 def my_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail, "detail": exc.detail},
+    )
