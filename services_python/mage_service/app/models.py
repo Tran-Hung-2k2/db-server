@@ -29,6 +29,7 @@ class Block(Base):
     __tablename__ = "blocks"
     pipeline_id = db.Column(UUID(as_uuid=True), db.ForeignKey('pipelines.id'), nullable=False)
     source_type = db.Column(db.String, nullable=False)
+    source_config = db.Column(db.String, nullable=False)
     block_type = db.Column(db.String, nullable=False)
 
 class PipelineSchedule(Base):
