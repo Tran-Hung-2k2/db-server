@@ -13,66 +13,54 @@ router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 # ROUTES FOR PIPELINES
 
 
-@router.get(
-    "/"
-    # , dependencies=[Depends(middlewares.verify_all)]
-)
+@router.get("/", dependencies=[Depends(middlewares.verify_all)])
 async def get_all_pipelines(
     request: Request,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
 
     return ctl.get_all_pipelines(
-        # db,
-        request
+        db=db,
+        request=request
     )
 
 
-@router.get(
-    "/{uuid}"
-    # , dependencies=[Depends(middlewares.verify_all)]
-)
+@router.get("/{uuid}", dependencies=[Depends(middlewares.verify_all)])
 async def get_one_pipeline(
     uuid: str,
     request: Request,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return ctl.get_one_pipeline(
-        uuid,
-        # db,
-        request,
+        uuid=uuid,
+        db=db,
+        request=request,
     )
 
 
-@router.post(
-    "/"
-    # , dependencies=[Depends(middlewares.verify_user)]
-)
+@router.post("/", dependencies=[Depends(middlewares.verify_user)])
 async def create_pipelines(
     request: Request,
     data: schemas.PipelineCreate,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return ctl.create_pipelines(
-        # db,
-        data,
-        request,
+        db=db,
+        data=data,
+        request=request,
     )
 
 
-@router.delete(
-    "/{uuid}"
-    # , dependencies=[Depends(middlewares.verify_user)]
-)
+@router.delete("/{uuid}", dependencies=[Depends(middlewares.verify_user)])
 async def delete_one_pipeline(
     request: Request,
     uuid: str,
-    # db: Session = Depends(get_session)
+    db: Session = Depends(get_session)
 ):
     return ctl.delete_one_pipeline(
-        # db,
-        uuid,
-        request,
+        db=db,
+        uuid=uuid,
+        request=request,
     )
 
 
@@ -80,76 +68,72 @@ async def delete_one_pipeline(
 
 
 @router.get(
-    "/{uuid}/blocks/{block_uuid}"
-    # , dependencies=[Depends(middlewares.verify_all)]
+    "/{uuid}/blocks/{block_uuid}", dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_one_block(
     uuid: str,
     block_uuid: str,
     request: Request,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return ctl.get_one_block(
-        uuid,
-        block_uuid,
-        # db,
-        request,
+        uuid=uuid,
+        block_uuid=block_uuid,
+        db=db,
+        request=request,
     )
 
 
 @router.post(
-    "/{uuid}/blocks/datasource"
-    # , dependencies=[Depends(middlewares.verify_user)]
+    "/{uuid}/blocks", dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_block(
     uuid: str,
     request: Request,
     data: schemas.BlockCreate,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return ctl.create_block(
-        uuid,
-        # db,
-        data,
-        request,
+        uuid=uuid,
+        db=db,
+        data=data,
+        request=request,
     )
 
 
-@router.put(
-    "/{uuid}/blocks/{block_uuid}"
-    # , dependencies=[Depends(middlewares.verify_user)]
+@router.patch(
+    "/{uuid}/blocks/{block_uuid}", dependencies=[Depends(middlewares.verify_user)]
 )
 async def update_block(
     request: Request,
     uuid: str,
     block_uuid: str,
     data: schemas.BlockUpdate,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return ctl.update_block(
-        # db,
-        uuid,
-        block_uuid,
-        data,
-        request,
+        db=db,
+        uuid=uuid,
+        block_uuid=block_uuid,
+        data=data,
+        request=request,
     )
 
 
 @router.delete(
-    "/{uuid}/blocks/{block_uuid}"
-    # , dependencies=[Depends(middlewares.verify_user)]
+    "/{uuid}/blocks/{block_uuid}", dependencies=[Depends(middlewares.verify_user)]
 )
 async def delete_one_block(
     request: Request,
     uuid: str,
     block_uuid: str,
-    # db: Session = Depends(get_session)
+    db: Session = Depends(get_session)
 ):
     return ctl.delete_one_block(
-        # db,
-        uuid,
-        block_uuid,
-        request,
+        db=db,
+        uuid=uuid,
+        block_uuid=block_uuid,
+        request=request,
     )
 
 
@@ -157,71 +141,70 @@ async def delete_one_block(
 
 
 @router.get(
-    "/{uuid}/pipeline_schedules"
-    # , dependencies=[Depends(middlewares.verify_all)]
+    "/{uuid}/pipeline_schedules", dependencies=[Depends(middlewares.verify_all)]
 )
 async def get_all_pipeline_schedules(
     uuid: str,
     request: Request,
-    # db: Session = Depends(get_session),
+    db: Session = Depends(get_session),
 ):
     return ctl.get_all_pipeline_schedules(
-        uuid,
-        # db,
-        request,
+        uuid=uuid,
+        db=db,
+        request=request,
     )
 
 
 @router.post(
-    "/{uuid}/pipeline_schedules"
-    # , dependencies=[Depends(middlewares.verify_user)]
+    "/{uuid}/pipeline_schedules", dependencies=[Depends(middlewares.verify_user)]
 )
 async def create_pipeline_schedules(
     uuid: str,
     request: Request,
-    data: schemas.DatasetCreate,
-    # db: Session = Depends(get_session),
+    data: schemas.PipelineScheduleCreate,
+    db: Session = Depends(get_session),
 ):
     return ctl.create_pipeline_schedules(
-        uuid,
-        # db,
-        data,
-        request,
+        uuid=uuid,
+        db=db,
+        data=data,
+        request=request,
     )
 
-@router.put(
-    "/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
-    # , dependencies=[Depends(middlewares.verify_user)]
+
+@router.patch(
+    "/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}",
+    dependencies=[Depends(middlewares.verify_user)],
 )
 async def update_pipeline_schedules(
-    uuid:str,
-    pipeline_schedules_uuid:str,
+    uuid: str,
+    pipeline_schedules_uuid: str,
     request: Request,
-    data: schemas.DatasetCreate,
-    # db: Session = Depends(get_session),
+    data: schemas.PipelineUpdate,
+    db: Session = Depends(get_session),
 ):
     return ctl.update_pipeline_schedules(
-        uuid,
-        pipeline_schedules_uuid,
-        # db,
-        data,
-        request,
+        uuid=uuid,
+        pipeline_schedules_uuid=pipeline_schedules_uuid,
+        db=db,
+        data=data,
+        request=request,
     )
 
 
 @router.delete(
-    "/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
-    # , dependencies=[Depends(middlewares.verify_user)]
+    "/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}",
+    dependencies=[Depends(middlewares.verify_user)],
 )
 async def delete_one_pipeline_schedules(
     request: Request,
     uuid: str,
     pipeline_schedules_uuid: str,
-    # db: Session = Depends(get_session)
+    db: Session = Depends(get_session)
 ):
     return ctl.delete_one_pipeline_schedules(
-        # db,
-        uuid,
-        pipeline_schedules_uuid,
-        request,
+        db=db,
+        uuid=uuid,
+        pipeline_schedules_uuid=pipeline_schedules_uuid,
+        request=request,
     )
