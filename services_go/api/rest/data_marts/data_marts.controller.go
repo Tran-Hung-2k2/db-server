@@ -8,44 +8,59 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
 )
 
+var LIMIT_RECORD = utils.GetEnv("LIMIT_RECORD", "50")
+
 func GetDataMart(ctx *gin.Context) {
 	// Khởi tạo truy vấn
-	query := db.DB
-
-	// Mảng key của query parameters cần lọc
-	queryParams := []string{"id", "user_id", "type"}
-
-	// Thêm điều kiện vào truy vấn nếu giá trị không rỗng
-	for _, key := range queryParams {
-		value := ctx.Query(key)
-		if value != "" {
-			query = query.Where(fmt.Sprintf("%s = ?", key), value)
-		}
+	var query *gorm.DB
+	if ctx.GetString(constants.USER_ROLE_KEY) != constants.ADMIN {
+		query, _ = utils.AddQueryData(ctx, db.DB, map[string]interface{}{
+			"user_id": ctx.GetString(constants.USER_ID_KEY),
+		})
+	} else {
+		query, _ = utils.AddQueryData(ctx, db.DB, map[string]interface{}{})
 	}
 
-	// Thực hiện truy vấn để lấy danh sách data mart
+	// Get limit and skip from query parameters
+	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", LIMIT_RECORD))
+	skip, _ := strconv.Atoi(ctx.DefaultQuery("skip", "0"))
+	sort_by := ctx.DefaultQuery("sort_by", "created_at")
+	sort_dim := ctx.DefaultQuery("sort_dim", "desc")
+	name := ctx.DefaultQuery("name", "")
+
+	if !utils.Contains(sort_by, []string{"id", "created_at", "updated_at", "user_id", "name"}) {
+		sort_by = "created_at"
+	}
+	if !utils.Contains(sort_dim, []string{"asc", "desc"}) {
+		sort_dim = "desc"
+	}
+
+	// Get total count
+	var total int64
+	query.Model(&models.DataMart{}).Where("LOWER(name) LIKE LOWER(?)", "%"+name+"%").Count(&total)
+
 	var records []models.DataMart
-	result := query.Find(&records)
+	result := query.Where("LOWER(name) LIKE LOWER(?)", "%"+name+"%").Order(fmt.Sprintf("%s %s", sort_by, sort_dim)).Limit(limit).Offset(skip).Find(&records)
 
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"data": records})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Lấy danh sách kho dữ liệu thành công.", gin.H{"data": records, "limit": limit, "skip": skip, "total": total}, ""))
 }
 
 func CreateDataMart(ctx *gin.Context) {
 	var record models.DataMart
-
-	if err := ctx.ShouldBindJSON(&record); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin yêu cầu không hợp lệ."})
+	if err := utils.GetBodyData(ctx, &record); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}
 
@@ -53,20 +68,19 @@ func CreateDataMart(ctx *gin.Context) {
 
 	result := db.DB.Create(&record)
 	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"data": record})
+	ctx.JSON(http.StatusCreated, utils.MakeResponse("Tạo kho dữ liệu thành công.", record, ""))
 }
 
 func UpdateDataMart(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	var record models.DataMart
-
-	if err := ctx.ShouldBindJSON(&record); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Thông tin yêu cầu không hợp lệ."})
+	if err := utils.GetBodyData(ctx, &record); err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.MakeResponse("Định dạng dữ liệu không hợp lệ.", nil, err.Error()))
 		return
 	}
 
@@ -75,36 +89,53 @@ func UpdateDataMart(ctx *gin.Context) {
 	result := db.DB.Where("id = ?", id).First(&existingRecord)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			ctx.JSON(http.StatusNotFound, gin.H{"message": "Không tìm thấy data mart."})
+			ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy kho dữ liệu.", nil, result.Error.Error()))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"message": "Có lỗi xảy ra, vui lòng thử lại sau."})
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
 	if existingRecord.UserID != uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY)) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"message": "Bạn không có quyền truy cập tài nguyên này."})
+		ctx.JSON(http.StatusForbidden, utils.MakeResponse("Bạn không có quyền truy cập tài nguyên này.", nil, ""))
 		return
 	}
 
 	// Cập nhật chỉ các trường cần thiết
-	db.DB.Model(&models.DataMart{}).Where("id = ?", id).Select("Name").Updates(&record)
+	db.DB.Model(&models.DataMart{}).Where("id = ?", id).Select("Name", "Description", "Schema").Updates(&record)
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Cập nhật thông tin data mart thành công", "data": record})
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Cập nhật thông tin kho dữ liệu thành công.", record, ""))
 }
 
 func DeleteDataMart(ctx *gin.Context) {
 	id := ctx.Param("id")
 
-	result := db.DB.Where("id = ?", id).Delete(&models.User{})
+	// Kiểm tra user_id trước khi update
+	existingRecord := models.DataMart{}
+	result := db.DB.Where("id = ?", id).First(&existingRecord)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy kho dữ liệu.", nil, result.Error.Error()))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
+		return
+	}
+
+	if existingRecord.UserID != uuid.FromStringOrNil(ctx.GetString(constants.USER_ID_KEY)) {
+		ctx.JSON(http.StatusForbidden, utils.MakeResponse("Bạn không có quyền truy cập tài nguyên này.", nil, ""))
+		return
+	}
+
+	result = db.DB.Where("id = ?", id).Delete(&models.DataMart{})
 
 	if result.RowsAffected == 0 {
-		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy data mart.", nil, ""))
+		ctx.JSON(http.StatusNotFound, utils.MakeResponse("Không tìm thấy kho dữ liệu.", nil, ""))
 		return
 	} else if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, utils.MakeResponse("Xóa data mart thành công.", nil, ""))
+	ctx.JSON(http.StatusOK, utils.MakeResponse("Xóa kho dữ liệu thành công.", nil, ""))
 }

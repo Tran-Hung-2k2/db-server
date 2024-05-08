@@ -4,6 +4,7 @@ import (
 	"db-server/docs"
 	"db-server/middlewares"
 	"db-server/utils"
+	"db-server/validations"
 
 	"github.com/gin-gonic/gin"
 
@@ -24,9 +25,9 @@ func InitRouter() *gin.Engine {
 	// Tạo nhóm route
 	v1 := r.Group(basePath)
 	{
-		v1.GET("/", middlewares.VerifyAll(), GetDataMart)
-		v1.POST("/", middlewares.VerifyUser(), CreateDataMart)
-		v1.PATCH("/:id", middlewares.VerifyUser(), UpdateDataMart)
+		v1.GET("/", validations.GetDataMart(), middlewares.VerifyAll(), GetDataMart)
+		v1.POST("/", validations.CreateDataMart(), middlewares.VerifyUser(), CreateDataMart)
+		v1.PATCH("/:id", validations.UpdateDataMart(), middlewares.VerifyUser(), UpdateDataMart)
 		v1.DELETE("/:id", middlewares.VerifyUser(), DeleteDataMart)
 	}
 

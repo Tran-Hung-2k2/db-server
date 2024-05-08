@@ -2,7 +2,6 @@ import { IoClose } from 'react-icons/io5';
 import FormEdit from './FormEdit';
 import fields from '@/constants/form/channels';
 import api from '@/api/channels';
-import type from '@/redux/auth/auth.type';
 
 export default function Component({ reload, setReload, id }) {
     const handleSubmit = async (e, data) => {
@@ -30,7 +29,6 @@ export default function Component({ reload, setReload, id }) {
             type: data.type,
             ...data.config,
         };
-        // const sortedList = _.orderBy(res.data?.data, ['created_at', 'name'], 'desc');
     };
 
     return (
@@ -50,9 +48,9 @@ export default function Component({ reload, setReload, id }) {
                     onSubmit={handleSubmit}
                 />
             </div>
-            {/* <form method="dialog" className="modal-backdrop">
-                <button>close</button>
-            </form> */}
+            <form method="dialog" className="modal-backdrop">
+                <button></button>
+            </form>
         </>
     );
 }

@@ -20,6 +20,20 @@ func GetChannel() gin.HandlerFunc {
 	}
 }
 
+func GetChannelDistinctValues() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		errorMessages := map[string]string{}
+
+		// Validate the data
+		if err := QueryValidation(ctx, &schemas.GetChannelDistinctValues{}, errorMessages); err != nil {
+			ctx.Abort()
+			return
+		}
+
+		ctx.Next()
+	}
+}
+
 func CreateChannel() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		errorMessages := map[string]string{}

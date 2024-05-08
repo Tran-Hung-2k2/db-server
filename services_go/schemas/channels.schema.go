@@ -8,6 +8,10 @@ type GetChannelRequest struct {
 	Type    string `form:"type" validate:"omitempty,oneof=API MySQL PostgreSQL MongoDB MinIO Snowflake 'Amazon S3' 'Oracle DB' 'Azure Blob Storage' 'Google Big Query' 'Upload File'"`
 }
 
+type GetChannelDistinctValues struct {
+	Field string `form:"field" validate:"omitempty,oneof=type name"`
+}
+
 type CreateChannelRequest struct {
 	Name        string          `form:"name" validate:"required"`
 	Type        string          `form:"type" validate:"required"`

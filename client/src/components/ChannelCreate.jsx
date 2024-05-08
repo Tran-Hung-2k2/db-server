@@ -31,9 +31,9 @@ export default function Component({ reload, setReload }) {
                 </form>
                 <FormCreate fields={fields} title="Tạo nguồn dữ liệu mới" onSubmit={handleSubmit} />
             </div>
-            {/* <form method="dialog" className="modal-backdrop">
-                <button>close</button>
-            </form> */}
+            <form method="dialog" className="modal-backdrop">
+                <button></button>
+            </form>
         </>
     );
 }

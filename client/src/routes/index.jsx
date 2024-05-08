@@ -10,6 +10,7 @@ import NotFound from '@pages/NotFound';
 import HomeNavigate from '@pages/HomeNavigate';
 
 const ChannelManage = lazy(() => import('@pages/ChannelManage'));
+const DataMartManage = lazy(() => import('@pages/DataMartManage'));
 const MLOpsManage = lazy(() => import('@pages/MLOpsManage'));
 
 const routes = [
@@ -45,7 +46,23 @@ const routes = [
                         component: ChannelManage,
                     },
                     {
-                        path: '/mlops/manage',
+                        path: '/datamarts/manage',
+                        component: DataMartManage,
+                    },
+                    {
+                        path: '/datasets/manage',
+                        component: DataMartManage,
+                    },
+                    {
+                        path: '/pipelines/manage',
+                        component: DataMartManage,
+                    },
+                    {
+                        path: '/mlops/experiments/manage',
+                        component: MLOpsManage,
+                    },
+                    {
+                        path: '/mlops/models/manage',
                         component: MLOpsManage,
                     },
                 ],

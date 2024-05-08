@@ -12,8 +12,8 @@ import store from '@redux/store';
 ReactDOM.createRoot(document.getElementById('root')).render(
     <Router>
         <Provider store={store}>
+            <ToastContainer containerId="main" style={{ zIndex: 9999 }} position="top-right" />
             <App />
-            <ToastContainer style={{ zIndex: 10000000 }} position="top-right" />
         </Provider>
     </Router>,
 );
