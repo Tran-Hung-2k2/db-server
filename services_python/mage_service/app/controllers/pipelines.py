@@ -35,11 +35,13 @@ def get_all_pipelines(
     # Lấy giá trị skip và limit từ query_params
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
-
+    sort_by= query_params.get("sort_by","")
+    sort_dim=query_params.get("sort_dim", "")
+    name=query_params.get("name","")
     # Giới hạn giá trị limit trong khoảng từ 0 đến 200
     limit = min(max(int(limit), 0), 200)
 
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}&_order_by[]={sort_dim}{sort_by}&search={name}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
