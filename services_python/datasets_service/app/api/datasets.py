@@ -3,10 +3,10 @@ from pydantic import UUID4
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
-import services_python.data_service.app.controllers.datasets as ctl
-import services_python.data_service.app.schemas.datasets as schemas
+import services_python.datasets_service.app.controllers.datasets as ctl
+import services_python.datasets_service.app.schemas.datasets as schemas
 import services_python.middlewares.auth as middlewares
-from services_python.data_service.app.database import get_session
+from services_python.datasets_service.app.database import get_session
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 

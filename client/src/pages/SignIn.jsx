@@ -40,14 +40,14 @@ export default function Page() {
                     switch (field.type) {
                         case 'password':
                             return (
-                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                <label key={field.id} className="flex items-center gap-2 input input-primary">
                                     {field.icon}
                                     <InputPassword onChange={handleChange} {...field} className="grow" />
                                 </label>
                             );
                         default:
                             return (
-                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                <label key={field.id} className="flex items-center gap-2 input input-primary">
                                     {field.icon}
                                     <input onChange={handleChange} {...field} className="grow" />
                                 </label>

@@ -2,15 +2,21 @@ import { useEffect, useState } from 'react';
 import { GrNext } from 'react-icons/gr';
 import { VscFilter } from 'react-icons/vsc';
 
-export default function Component({ filter, setFilter, getValues, filterFields }) {
+export default function Component({ filter, setFilter, getValues, filterFields, getStaticValues }) {
     const [valueFilter, setValueFilter] = useState({});
     const [filterValues, setFilterValues] = useState([]);
     const [fieldOpen, setFieldOpen] = useState(filterFields[0].fieldName);
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await getValues({ field: fieldOpen });
-            setFilterValues(res.data);
+            let res;
+            if (getStaticValues != undefined) {
+                res = getStaticValues();
+                setFilterValues(res);
+            } else {
+                res = await getValues({ field: fieldOpen });
+                setFilterValues(res.data);
+            }
         };
 
         fetchData();

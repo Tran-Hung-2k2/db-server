@@ -32,12 +32,14 @@ async def get_all_pipelines(
 ):
     user_id = request.state.id
     query_params = dict(request.query_params)
+
     # Lấy giá trị skip và limit từ query_params
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
-    sort_by= query_params.get("sort_by","")
-    sort_dim=query_params.get("sort_dim", "")
-    name=query_params.get("name","")
+    sort_by = query_params.get("sort_by", "Created_at")
+    sort_dim = query_params.get("sort_dim", "")
+    name = query_params.get("name", "")
+
     # Giới hạn giá trị limit trong khoảng từ 0 đến 200
     limit = min(max(int(limit), 0), 200)
 
@@ -53,7 +55,15 @@ async def get_all_pipelines(
             "created_at": pipeline.get("created_at"),
             "updated_at": pipeline.get("updated_at"),
             "description": pipeline.get("description"),
-            "name": db.query(Pipeline).filter((Pipeline.id == pipeline.get("uuid").replace("pipeline_", "").replace('_', '-'))).first().name,
+            "name": db.query(Pipeline)
+            .filter(
+                (
+                    Pipeline.id
+                    == pipeline.get("uuid").replace("pipeline_", "").replace("_", "-")
+                )
+            )
+            .first()
+            .name,
             "settings": pipeline.get("settings"),
             "type": "stream" if pipeline.get("type") == "streaming" else "batch",
             "uuid": pipeline.get("uuid").replace("pipeline_", ""),
@@ -61,6 +71,7 @@ async def get_all_pipelines(
             "schedules_number": len(pipeline.get("schedules", [])),
         }
         extracted_data.append(extracted_pipeline)
+
     return JSONResponse(
         content={
             "data": extracted_data,
@@ -82,7 +93,10 @@ async def get_one_pipeline(
 
     exist_pipeline = (
         db.query(Pipeline)
-        .filter((Pipeline.id == uuid.replace('_', '-')) & (Pipeline.user_id == request.state.id))
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
         .first()
     )
     if not exist_pipeline:
@@ -101,7 +115,9 @@ async def get_one_pipeline(
             "description": data_dict["pipeline"]["description"],
             "name": exist_pipeline.name,
             "settings": data_dict["pipeline"]["settings"],
-            "type": "stream" if data_dict["pipeline"]["type"] == "streaming" else "batch",
+            "type": (
+                "stream" if data_dict["pipeline"]["type"] == "streaming" else "batch"
+            ),
             "uuid": data_dict["pipeline"]["uuid"].replace("pipeline_", ""),
             "blocks": [
                 {
@@ -167,7 +183,7 @@ async def create_pipelines(
     db.refresh(new_record)
     extracted_info = {
         "pipeline": {
-            "name": ("pipeline_"+str(new_record.id)),
+            "name": ("pipeline_" + str(new_record.id)),
             "type": "streaming" if pipeline_type == "stream" else "python",
             "tags": [str(new_record.user_id)],
             "description": description,
@@ -223,7 +239,10 @@ async def delete_one_pipeline(
 ):
     exist_pipeline = (
         db.query(Pipeline)
-        .filter((Pipeline.id == uuid.replace('_', '-')) & (Pipeline.user_id == request.state.id))
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
         .first()
     )
     if not exist_pipeline:

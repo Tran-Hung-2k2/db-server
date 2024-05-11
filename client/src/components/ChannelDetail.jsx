@@ -20,6 +20,7 @@ export default function Component({ reload, setReload, id }) {
     };
 
     const getData = async () => {
+        if (!id) return {};
         const res = await api.getChannel({ id });
         const data = res.data[0];
         return {

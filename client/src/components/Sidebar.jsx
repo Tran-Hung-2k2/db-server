@@ -8,24 +8,32 @@ import sidebarAvatar from '@assets/images/sidebar.svg';
 import favicon from '@assets/images/favicon.svg';
 import menuItem from '@constants/sidebar';
 
-export default function Component({ className }) {
+export default function Component({ className, open, setOpen }) {
     const { user } = useSelector((state) => state.auth);
 
-    const [open, setOpen] = useState(false);
+    const [hover, setHover] = useState(false);
 
     return (
-        <div className={`overflow-x-hidden bg-white border shadow-md drawer-side ${open ? className : ''}`}>
+        <div
+            className={`overflow-x-hidden z-50 bg-white border shadow-md drawer-side ${open ? className : ''}`}
+            onMouseEnter={(e) => {
+                setHover(true);
+            }}
+            onMouseLeave={(e) => {
+                setHover(false);
+            }}
+        >
             <label htmlFor="my-drawer-2" aria-label="close sidebar" className="drawer-overlay"></label>
-            <ul className="p-3 bg-white menu">
+            <ul className="!p-0 bg-white menu">
                 {/* Sidebar content here */}
                 {/* <!-- SIDEBAR HEADER --> */}
-                <div className="relative flex items-center justify-between gap-2 px-6 pt-2">
+                <div className="items-center justify-between gap-2 px-6 pt-2 lex ">
                     {open && (
                         <NavLink to="/" className="flex items-center justify-center w-full">
                             <img className="w-40 mt-4 mr-4" src={sidebarAvatar} alt="Viettel High Tech" />
                         </NavLink>
                     )}
-                    <label className={`absolute right-0 top-5 swap swap-rotate ${open ? '' : 'right-2.5'}`}>
+                    <label className={`absolute left-60 top-5 swap swap-rotate ${open ? '' : '!left-6'}`}>
                         {/* this hidden checkbox controls the state */}
                         <input
                             onClick={(e) => {
@@ -35,7 +43,10 @@ export default function Component({ className }) {
                         />
 
                         {/* hamburger icon */}
-                        <img className="fill-current swap-off" src={favicon} alt="Viettel High Tech" />
+                        <div className="flex items-center gap-5 fill-current swap-off">
+                            <img src={favicon} alt="Viettel High Tech" />
+                            {hover && <div className="text-2xl font-bold text-primary">Viettel</div>}
+                        </div>
 
                         {/* close icon */}
                         <HiArrowNarrowLeft size={28} className="fill-current swap-on text-zinc-500" />
@@ -48,7 +59,7 @@ export default function Component({ className }) {
                     {open ? (
                         <nav className="lg:px-2">
                             {/* <!-- Menu Group --> */}
-                            <ul className="w-full menu rounded-box">
+                            <ul className="w-full menu rounded-box !p-0">
                                 {menuItem.map((item, index) =>
                                     item.label ? (
                                         <h3
@@ -105,7 +116,7 @@ export default function Component({ className }) {
                             </ul>
                         </nav>
                     ) : (
-                        <ul className="w-full p-0 mt-16 menu rounded-box">
+                        <ul className="w-full mt-16 menu rounded-box !p-0">
                             {menuItem.map(
                                 (item, index) =>
                                     !item.label &&
@@ -113,15 +124,41 @@ export default function Component({ className }) {
                                     item.role.includes(user.role) &&
                                     item?.child[0].role.includes(user.role) && (
                                         <li key={index}>
-                                            <NavLink
-                                                to={item?.child[0].path}
-                                                className={({ isActive }) =>
-                                                    'bg-stone-100 px-0 my-2 flex justify-center focus:text-white ' +
-                                                    (isActive && '!bg-red-600 !text-white')
-                                                }
-                                            >
-                                                {item.bigIcon || item.icon}
-                                            </NavLink>
+                                            {hover ? (
+                                                <NavLink
+                                                    to={item?.child[0].path}
+                                                    className={({ isActive }) =>
+                                                        'relative pl-4 py-2 focus:text-white rounded-none text-base font-semibold hover:bg-stone-100 ' +
+                                                        (isActive && '!bg-red-600 !text-white')
+                                                    }
+                                                >
+                                                    {({ isActive }) => (
+                                                        <>
+                                                            <span
+                                                                className={`p-2 rounded-md ${
+                                                                    isActive ? 'bg-red-700' : 'bg-stone-200'
+                                                                }`}
+                                                            >
+                                                                {item.bigIcon || item.icon}
+                                                            </span>
+                                                            <div className="pr-24">{item.title}</div>
+                                                        </>
+                                                    )}
+                                                </NavLink>
+                                            ) : (
+                                                <div className="py-2 pl-4 text-base font-semibold rounded-none focus:text-white">
+                                                    <NavLink
+                                                        to={item?.child[0].path}
+                                                        className={({ isActive }) =>
+                                                            `p-2 rounded-md ${
+                                                                isActive ? 'bg-red-600 !text-white' : 'bg-stone-200'
+                                                            }`
+                                                        }
+                                                    >
+                                                        {item.bigIcon || item.icon}
+                                                    </NavLink>
+                                                </div>
+                                            )}
                                         </li>
                                     ),
                             )}
