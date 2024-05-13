@@ -8,6 +8,7 @@ import services_python.mage_service.app.schemas.pipelines as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
+from unidecode import unidecode
 
 # from services_python.utils.delta import (
 #     save_file_to_s3_as_delta,
@@ -32,16 +33,24 @@ async def get_all_pipelines(
 ):
     user_id = request.state.id
     query_params = dict(request.query_params)
-    # Lấy giá trị skip và limit từ query_params
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
-    sort_by= query_params.get("sort_by","")
-    sort_dim=query_params.get("sort_dim", "")
-    name=query_params.get("name","")
-    # Giới hạn giá trị limit trong khoảng từ 0 đến 200
     limit = min(max(int(limit), 0), 200)
-
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}&_order_by[]={sort_dim}{sort_by}&search={name}"
+    sort_by = query_params.get("sort_by", "name").lower()
+    if sort_by not in ["name", "updated", "created"]:
+        sort_by = "name"
+    sort_dim = query_params.get("sort_dim", "desc").lower()
+    if sort_dim not in ["desc"]:
+        sort_dim = "-"
+    else:
+        sort_dim = ""
+    search = unidecode(query_params.get("search", "")).lower()
+    pipeline_type = query_params.get("type", "python").lower()
+    if pipeline_type not in ["stream"]:
+        pipeline_type = "python"
+    else:
+        pipeline_type = "streaming"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}&include_schedules=1&_order_by[]={sort_dim}{sort_by}&search={search}&type[]={pipeline_type}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
@@ -53,13 +62,30 @@ async def get_all_pipelines(
             "created_at": pipeline.get("created_at"),
             "updated_at": pipeline.get("updated_at"),
             "description": pipeline.get("description"),
-            "name": db.query(Pipeline).filter((Pipeline.id == pipeline.get("uuid").replace("pipeline_", "").replace('_', '-'))).first().name,
+            "name": db.query(Pipeline)
+            .filter((Pipeline.id == pipeline.get("uuid")[-36:].replace("_", "-")))
+            .first()
+            .name,
             "settings": pipeline.get("settings"),
             "type": "stream" if pipeline.get("type") == "streaming" else "batch",
-            "uuid": pipeline.get("uuid").replace("pipeline_", ""),
+            "uuid": pipeline.get("uuid")[-36:].replace("pipeline_", ""),
             "blocks_number": len(pipeline.get("blocks", [])),
             "schedules_number": len(pipeline.get("schedules", [])),
+            "status": None,
         }
+        schedules = pipeline.get("schedules", [])
+        if not schedules:
+            extracted_pipeline["status"] = "no schedule"
+        else:
+            # Check if any schedule is active
+            any_active = any(
+                schedule.get("status") == "active" for schedule in schedules
+            )
+            if any_active:
+                extracted_pipeline["status"] = "active"
+            else:
+                extracted_pipeline["status"] = "inactive"
+
         extracted_data.append(extracted_pipeline)
     return JSONResponse(
         content={
@@ -82,7 +108,10 @@ async def get_one_pipeline(
 
     exist_pipeline = (
         db.query(Pipeline)
-        .filter((Pipeline.id == uuid.replace('_', '-')) & (Pipeline.user_id == request.state.id))
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
         .first()
     )
     if not exist_pipeline:
@@ -90,7 +119,7 @@ async def get_one_pipeline(
             content={"data": [], "message": "Pipeline không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{uuid}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_')}_{uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
@@ -101,8 +130,10 @@ async def get_one_pipeline(
             "description": data_dict["pipeline"]["description"],
             "name": exist_pipeline.name,
             "settings": data_dict["pipeline"]["settings"],
-            "type": "stream" if data_dict["pipeline"]["type"] == "streaming" else "batch",
-            "uuid": data_dict["pipeline"]["uuid"].replace("pipeline_", ""),
+            "type": (
+                "stream" if data_dict["pipeline"]["type"] == "streaming" else "batch"
+            ),
+            "uuid": data_dict["pipeline"]["uuid"][-36:],
             "blocks": [
                 {
                     "name": block["name"],
@@ -167,7 +198,12 @@ async def create_pipelines(
     db.refresh(new_record)
     extracted_info = {
         "pipeline": {
-            "name": ("pipeline_"+str(new_record.id)),
+            "name": (
+                "pipeline_"
+                + unidecode(new_record.name.replace(" ", "_"))
+                + "_"
+                + str(new_record.id)
+            ),
             "type": "streaming" if pipeline_type == "stream" else "python",
             "tags": [str(new_record.user_id)],
             "description": description,
@@ -186,7 +222,7 @@ async def create_pipelines(
             "name": new_record.name,
             "settings": pipeline.get("settings"),
             "type": "stream" if pipeline.get("type") == "streaming" else "batch",
-            "uuid": pipeline.get("uuid").replace("pipeline_", ""),
+            "uuid": pipeline.get("uuid")[-36:],
             # "variables_dir": pipeline.get("variables_dir"),
             "blocks_number": len(pipeline.get("blocks", [])),
             "schedules_number": len(pipeline.get("schedules", [])),
@@ -216,14 +252,18 @@ async def create_pipelines(
 
 
 @handle_database_errors
-async def delete_one_pipeline(
+async def update_pipeline(
+    data: schemas.PipelineUpdate,
     uuid: str,
     db: Session,
     request: Request,
 ):
     exist_pipeline = (
         db.query(Pipeline)
-        .filter((Pipeline.id == uuid.replace('_', '-')) & (Pipeline.user_id == request.state.id))
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
         .first()
     )
     if not exist_pipeline:
@@ -231,7 +271,86 @@ async def delete_one_pipeline(
             content={"data": [], "message": "Pipeline không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{uuid}"
+    print(exist_pipeline.name)
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_')}_{uuid}"
+    headers = {"x_api_key": MAGE_API_KEY}
+    extracted_info = {
+        "pipeline": {
+            "name": (
+                "pipeline_"
+                + unidecode(data.name.replace(" ", "_"))
+                + "_"
+                + str(exist_pipeline.id)
+            ),
+            "type": "streaming" if exist_pipeline == "stream" else "python",
+            "tags": [str(exist_pipeline.user_id)],
+            "description": data.description,
+        }
+    }
+
+    response = requests.put(url, json=extracted_info, headers=headers)
+    data_dict = response.json()
+    if "error" not in data_dict:
+        updated_data_dict = data.dict()
+        for key, value in updated_data_dict.items():
+            setattr(exist_pipeline, key, value)
+        db.commit()
+        db.refresh(exist_pipeline)
+        pipeline = data_dict["pipeline"]
+        extracted_pipeline = {
+            "created_at": pipeline.get("created_at"),
+            "updated_at": pipeline.get("updated_at"),
+            "description": pipeline.get("description"),
+            "name": exist_pipeline.name,
+            "settings": pipeline.get("settings"),
+            "type": "stream" if pipeline.get("type") == "streaming" else "batch",
+            "uuid": pipeline.get("uuid").replace("pipeline_", ""),
+            # "variables_dir": pipeline.get("variables_dir"),
+            "blocks_number": len(pipeline.get("blocks", [])),
+            "schedules_number": len(pipeline.get("schedules", [])),
+        }
+        extracted_data = [extracted_pipeline]
+        return JSONResponse(
+            content={
+                "data": extracted_data,
+                "detail": "",
+                "message": "Tạo pipeline thành công",
+            },
+            status_code=status.HTTP_200_OK,
+        )
+    else:
+        extracted_data = []
+        detail = data_dict["error"]["exception"]
+        return JSONResponse(
+            content={
+                "data": extracted_data,
+                "detail": detail,
+                "message": "Tạo pipelines thất bại",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+@handle_database_errors
+async def delete_one_pipeline(
+    uuid: str,
+    db: Session,
+    request: Request,
+):
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_')}_{uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()

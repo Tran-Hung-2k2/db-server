@@ -10,7 +10,7 @@ class PipelineCreate(BaseModel):
 
 class PipelineUpdate(BaseModel):
     name: str
-    other: Optional[dict] = None
+    description: Optional[str] = None
 
 
 class BlockCreate(BaseModel):
