@@ -119,7 +119,7 @@ async def get_one_pipeline(
             content={"data": [], "message": "Pipeline không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_')}_{uuid}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
@@ -136,11 +136,11 @@ async def get_one_pipeline(
             "uuid": data_dict["pipeline"]["uuid"][-36:],
             "blocks": [
                 {
-                    "name": block["name"],
+                    "name": db.query(Block).filter(Block.id == block["uuid"][-36:].replace("_", "-")).first().name,
                     "downstream_blocks": block["downstream_blocks"],
                     "type": block["type"],
                     "upstream_blocks": block["upstream_blocks"],
-                    "uuid": block["uuid"],
+                    "uuid": block["uuid"][-36:],
                     "status": block["status"],
                     "conditional_blocks": block["conditional_blocks"],
                     "callback_blocks": block["callback_blocks"],
@@ -271,8 +271,7 @@ async def update_pipeline(
             content={"data": [], "message": "Pipeline không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    print(exist_pipeline.name)
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_')}_{uuid}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     extracted_info = {
         "pipeline": {
@@ -350,7 +349,7 @@ async def delete_one_pipeline(
             content={"data": [], "message": "Pipeline không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_')}_{uuid}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
@@ -402,11 +401,23 @@ async def get_one_block(
     db: Session,
     request: Request,
 ):
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    
     exist_block = (
         db.query(Block)
-        .join(Pipeline, Pipeline.id == Block.pipeline_id)
-        .filter(Block.id == block_uuid)
-        .with_entities(Pipeline.id)
+        .filter(Block.id == block_uuid.replace("_", "-"))
         .first()
     )
     if not exist_block:
@@ -414,23 +425,22 @@ async def get_one_block(
             content={"data": [], "message": "Block không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    if exist_block.user_id != request.state.id:
+    if exist_block.pipeline_id != exist_pipeline.id:
         return JSONResponse(
-            content={"data": [], "message": "Bạn không có quyền truy cập block"},
+            content={"data": [], "message": "Bạn không có quyền truy cập block này"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    print(exist_block)
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/blocks/{block_uuid}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}/blocks/block_{unidecode(exist_block.name).replace(' ', '_').lower()}_{block_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
     extracted_data = [
         {
-            "name": data_dict["block"]["name"],
-            "downstream_blocks": data_dict["block"]["downstream_blocks"],
+            "name": exist_block.name,
+            "downstream_blocks": [db.query(Block).filter(Block.id == block_id.replace("_", "-")).first().name for block_id in data_dict["block"]["downstream_blocks"]],
             "type": data_dict["block"]["type"],
-            "upstream_blocks": data_dict["block"]["upstream_blocks"],
-            "uuid": data_dict["block"]["uuid"],
+            "upstream_blocks": [db.query(Block).filter(Block.id == block_id.replace("_", "-")).first().name for block_id in data_dict["block"]["upstream_blocks"]],
+            "uuid": data_dict["block"]["uuid"][-36:],
             "status": data_dict["block"]["status"],
             # "conditional_blocks": [],
             # "callback_blocks": [],
@@ -451,7 +461,7 @@ async def get_one_block(
     )
 
 
-async def get_block_content(block_type, source_type, source_config):
+def get_block_content(block_type, source_type, source_config):
     if block_type == "data_loader":
         if source_type == "postgres":
             from services_python.mage_service.template.datasource.postgres import (
@@ -482,25 +492,64 @@ async def create_block(
     db: Session,
     request: Request,
 ):
+    if not data.name:
+        return JSONResponse(
+            content={"data": [], "message": "Tên block không được để trống"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if not data.block_type:
+        return JSONResponse(
+            content={"data": [], "message": "Kiểu block không được để trống"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if not data.source_type:
+        return JSONResponse(
+            content={"data": [], "message": "Kiểu source không được để trống"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if not data.source_config:
+        return JSONResponse(
+            content={"data": [], "message": "Cấu hình source không được để trống"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if data.block_type not in ["data_loader", "transformer", "data_exporter"]:
+        return JSONResponse(
+            content={
+                "data": [],
+                "message": "Kiểu block không hợp lệ. Kiểu block phải là 'data_loader', 'transformer', hoặc 'data_exporter'",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
     new_record = Block(
         name=data.name,
-        pipeline_id=uuid,
+        pipeline_id=exist_pipeline.id,
         source_type=data.source_type,
         source_config=data.source_config,
         block_type=data.block_type,
     )
+    db.add(new_record)
     db.commit()
     db.refresh(new_record)
-    name = str(new_record.id)
-    block_type = new_record.block_type
-    source_type = new_record.source_type
-    source_config = new_record.source_config
-    content = get_block_content(block_type, source_type, source_config)
+    content = get_block_content(new_record.block_type, new_record.source_type, new_record.source_config)
     language = "python"
+    print(str(new_record.id))
     extracted_info = {
         "block": {
-            "name": name,
-            "type": block_type,
+            "name": "block_"+unidecode(new_record.name.replace(" ", "_"))+ "_"+str(new_record.id),
+            "type": new_record.block_type,
             "content": content,
             "language": language,
             # "color": color,
@@ -512,19 +561,18 @@ async def create_block(
             # "upstream_blocks": upstream_blocks
         }
     }
-
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/blocks"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}/blocks"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=extracted_info, headers=headers)
     data_dict = response.json()
     if "error" not in data_dict:
         extracted_data = [
             {
-                "name": data_dict["block"]["name"],
-                "downstream_blocks": data_dict["block"]["downstream_blocks"],
+                "name": new_record.name,
+                "downstream_blocks": [db.query(Block).filter(Block.id == block_id.replace("_", "-")).first().name for block_id in data_dict["block"]["downstream_blocks"]],
                 "type": data_dict["block"]["type"],
-                "upstream_blocks": data_dict["block"]["upstream_blocks"],
-                "uuid": data_dict["block"]["uuid"],
+                "upstream_blocks": [db.query(Block).filter(Block.id == block_id.replace("_", "-")).first().name for block_id in data_dict["block"]["upstream_blocks"]],
+                "uuid": data_dict["block"]["uuid"][-36:],
                 "status": data_dict["block"]["status"],
                 # "conditional_blocks": [],
                 # "callback_blocks": [],
@@ -544,6 +592,8 @@ async def create_block(
     else:
         extracted_data = []
         detail = data_dict["error"]["exception"]
+        db.delete(new_record)
+        db.commit()
         return JSONResponse(
             content={
                 "data": extracted_data,
@@ -562,55 +612,77 @@ async def update_block(
     db: Session,
     request: Request,
 ):
-    name = data.name
-    block_type = data.block_type
-    source_config = data.source_config
-    source_type = data.source_type
-    content = get_block_content(block_type, source_type, source_config)
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    exist_block = (
+        db.query(Block)
+        .filter(Block.id == block_uuid.replace("_", "-"))
+        .first()
+    )
+    if not exist_block:
+        return JSONResponse(
+            content={"data": [], "message": "Block không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if exist_block.pipeline_id != exist_pipeline.id:
+        return JSONResponse(
+            content={"data": [], "message": "Bạn không có quyền truy cập block này"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    content = get_block_content(block_type=data.block_type, source_type=data.source_type, source_config=data.source_config)
     downstream_blocks = data.downstream_blocks
     upstream_blocks = data.upstream_blocks
     conditional_blocks = data.conditional_blocks
     callback_blocks = data.callback_blocks
-    has_callback = data.has_callback
-    retry_config = data.retry_config
     updated_block = {
         "block": {
-            "name": name,
-            "type": block_type,
-            "content": content,
-            "downstream_blocks": downstream_blocks,
-            "upstream_blocks": upstream_blocks,
-            "conditional_blocks": conditional_blocks,
-            "callback_blocks": callback_blocks,
-            "has_callback": has_callback,
-            "retry_config": retry_config,
-            # "bookmark_values": bookmark_values,
-            # "callback_blocks": callback_blocks,
-            # "color": color,
-            # "configuration": configuration,
-            # "destination_table": destination_table,
-            # "executor_config": executor_config,
-            # "executor_type": executor_type,
-            # "extension_uuid": extension_uuid,
-            # "language": language,
-            # "pipelines": pipelines,
-            # "retry_config": retry_config,
-            # "tap_stream_id": tap_stream_id,
+            "content": content if content else "",
+            "downstream_blocks": [f'block_{unidecode(db.query(Block).filter(Block.id == downstream_block_id.replace("_", "-")).first().name).lower().replace(" ", "_")}_{downstream_block_id}' for downstream_block_id in downstream_blocks],
+            "upstream_blocks": [f'block_{unidecode(db.query(Block).filter(Block.id == upstream_block_id.replace("_", "-")).first().name).lower().replace(" ", "_")}_{upstream_block_id}' for upstream_block_id in upstream_blocks],
+            "conditional_blocks": [f'block_{unidecode(db.query(Block).filter(Block.id == conditional_block_id.replace("_", "-")).first().name).lower().replace(" ", "_")}' for conditional_block_id in conditional_blocks],
+            "callback_blocks": [f'block_{unidecode(db.query(Block).filter(Block.id == callback_block_id.replace("_", "-")).first().name).lower().replace(" ", "_")}' for callback_block_id in callback_blocks],
+            "has_callback": True if data.has_callback else False,
+            "retry_config": data.retry_config if data.has_callback else [],
         }
     }
-
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/blocks/{block_uuid}"
+    if data.block_type:
+        updated_block["block"]["type"] = data.block_type
+    if data.name:
+        updated_block["block"]["name"] = "block_"+unidecode(data.name.replace(" ", "_"))+ "_"+str(exist_block.id)
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}/blocks/block_{unidecode(exist_block.name).replace(' ', '_').lower()}_{block_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.put(url, json=updated_block, headers=headers)
     data_dict = response.json()
     if "error" not in data_dict:
+        if data.name:
+            setattr(exist_block, "name", data.name)
+        if data.source_config:
+            setattr(exist_block, "source_config", data.source_config)
+        if data.source_type:
+            setattr(exist_block, "source_type", data.source_type)
+        if data.block_type:
+            setattr(exist_block, "block_type", data.block_type)
+        db.commit()
+        db.refresh(exist_block)
         extracted_data = [
             {
-                "name": data_dict["block"]["name"],
-                "downstream_blocks": data_dict["block"]["downstream_blocks"],
+                "name": exist_block.name,
+                "downstream_blocks": [db.query(Block).filter(Block.id == block_id[-36:].replace("_", "-")).first().name for block_id in data_dict["block"]["downstream_blocks"]],
                 "type": data_dict["block"]["type"],
-                "upstream_blocks": data_dict["block"]["upstream_blocks"],
-                "uuid": data_dict["block"]["uuid"],
+                "upstream_blocks": [db.query(Block).filter(Block.id == block_id[-36:].replace("_", "-")).first().name for block_id in data_dict["block"]["upstream_blocks"]],
+                "uuid": data_dict["block"]["uuid"][-36:],
                 "status": data_dict["block"]["status"],
                 # "conditional_blocks": [],
                 # "callback_blocks": [],
@@ -620,10 +692,13 @@ async def update_block(
             }
         ]
         message = "Sửa block thành công"
+
+        # TODO update database
+
         return JSONResponse(
             content={
                 "data": extracted_data,
-                "detail": detail,
+                "detail": [],
                 "message": message,
             },
             status_code=status.HTTP_200_OK,
@@ -649,28 +724,56 @@ async def delete_one_block(
     db: Session,
     request: Request,
 ):
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/blocks/{block_uuid}"
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    
+    exist_block = (
+        db.query(Block)
+        .filter(Block.id == block_uuid.replace("_", "-"))
+        .first()
+    )
+    if not exist_block:
+        return JSONResponse(
+            content={"data": [], "message": "Block không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if exist_block.pipeline_id != exist_pipeline.id:
+        return JSONResponse(
+            content={"data": [], "message": "Bạn không có quyền truy cập block này"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}/blocks/block_{unidecode(exist_block.name).replace(' ', '_').lower()}_{block_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
     if "error" not in data_dict:
-        extracted_data = {
-            "blocks": [
+        extracted_data = [
                 {
-                    "name": data_dict["block"]["name"],
-                    "downstream_blocks": data_dict["block"]["downstream_blocks"],
+                    "name": exist_block.name,
+                    "downstream_blocks": [db.query(Block).filter(Block.id == block_id.replace("_", "-")).first().name for block_id in data_dict["block"]["downstream_blocks"]],
                     "type": data_dict["block"]["type"],
-                    "upstream_blocks": data_dict["block"]["upstream_blocks"],
-                    "uuid": data_dict["block"]["uuid"],
+                    "upstream_blocks": [db.query(Block).filter(Block.id == block_id.replace("_", "-")).first().name for block_id in data_dict["block"]["upstream_blocks"]],
+                    "uuid": data_dict["block"]["uuid"][-36:],
                     "status": data_dict["block"]["status"],
                     # "conditional_blocks": [],
                     # "callback_blocks": [],
                     "has_callback": data_dict["block"]["has_callback"],
                     "retry_config": data_dict["block"]["retry_config"],
                 }
-            ],
-            "metadata": data_dict["metadata"],
-        }
+            ]
+        db.delete(exist_block)
+        db.commit()
         message = "Xóa block thành công"
         return JSONResponse(
             content={
