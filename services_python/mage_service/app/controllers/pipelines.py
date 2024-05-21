@@ -446,7 +446,7 @@ async def get_one_block(
                 .filter(Block.id == block_id.replace("_", "-"))
                 .first()
                 .name
-                for block_id in data_dict["block"]["downstream_blocks"]
+                for block_id in data_dict["block"]["downstream_blocks"][-36:]
             ],
             "type": data_dict["block"]["type"],
             "upstream_blocks": [
@@ -454,7 +454,7 @@ async def get_one_block(
                 .filter(Block.id == block_id.replace("_", "-"))
                 .first()
                 .name
-                for block_id in data_dict["block"]["upstream_blocks"]
+                for block_id in data_dict["block"]["upstream_blocks"][-36:]
             ],
             "uuid": data_dict["block"]["uuid"][-36:],
             "status": data_dict["block"]["status"],
