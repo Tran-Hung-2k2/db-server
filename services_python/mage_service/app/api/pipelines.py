@@ -50,6 +50,19 @@ async def create_pipelines(
         request=request,
     )
 
+@router.patch("/{uuid}", dependencies=[Depends(middlewares.verify_all)])
+async def update_pipeline(
+    uuid: str,
+    data: schemas.PipelineUpdate,
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    return await ctl.update_pipeline(
+        uuid=uuid,
+        data=data,
+        db=db,
+        request=request,
+    )
 
 @router.delete("/{uuid}", dependencies=[Depends(middlewares.verify_user)])
 async def delete_one_pipeline(

@@ -4,13 +4,13 @@ from typing import Optional, Literal
 
 class PipelineCreate(BaseModel):
     name: str
-    type: str
+    type: Literal["stream", "batch"]
     description: Optional[str] = None
 
 
 class PipelineUpdate(BaseModel):
     name: str
-    other: Optional[dict] = None
+    description: Optional[str] = None
 
 
 class BlockCreate(BaseModel):
@@ -22,18 +22,17 @@ class BlockCreate(BaseModel):
 
 
 class BlockUpdate(BaseModel):
-    name: str
-    block_type: Optional[Literal["data_loader", "transformer", "data_exporter"]] = None
+    name: Optional[str] = None
+    block_type: Optional[Literal["data_loader", "transformer", "data_exporter"]] = "data_loader"
     source_type: Optional[str] = None
     source_config: Optional[str] = None
     description: Optional[str] = None
-    content: Optional[str] = None
-    downstream_blocks: Optional[list] = None
-    upstream_blocks: Optional[list] = None
-    conditional_blocks: Optional[list] = None
-    callback_blocks: Optional[list] = None
-    has_callback: Optional[bool] = None
-    retry_config: Optional[dict] = None
+    downstream_blocks: Optional[list] = []
+    upstream_blocks: Optional[list] = []
+    conditional_blocks: Optional[list] = []
+    callback_blocks: Optional[list] = []
+    has_callback: Optional[bool] = False
+    retry_config: Optional[dict] = []
 
 
 class PipelineScheduleCreate(BaseModel):

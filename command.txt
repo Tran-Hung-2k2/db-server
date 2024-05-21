@@ -1,2 +1,2 @@
-docker run -d -p 6789:6789 -v $(pwd):/home/src mageai/mageai /app/run_app.sh mage start platform_template
+sudo docker run -d -p 6789:6789 -v $(pwd):/home/src mageai/mageai /app/run_app.sh mage start platform_template
 docker-compose -f docker-compose.yml up --build -d
