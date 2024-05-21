@@ -143,9 +143,9 @@ async def get_one_pipeline(
                     .filter(Block.id == block["uuid"][-36:].replace("_", "-"))
                     .first()
                     .name,
-                    "downstream_blocks": block["downstream_blocks"],
+                    "downstream_blocks": block["downstream_blocks"][-36:],
                     "type": block["type"],
-                    "upstream_blocks": block["upstream_blocks"],
+                    "upstream_blocks": block["upstream_blocks"][-36:],
                     "uuid": block["uuid"][-36:],
                     "status": block["status"],
                     "conditional_blocks": block["conditional_blocks"],
@@ -442,19 +442,11 @@ async def get_one_block(
         {
             "name": exist_block.name,
             "downstream_blocks": [
-                db.query(Block)
-                .filter(Block.id == block_id.replace("_", "-"))
-                .first()
-                .name
-                for block_id in data_dict["block"]["downstream_blocks"][-36:]
+                downstream_block[-36:] for downstream_block in data_dict["block"]["downstream_blocks"]
             ],
             "type": data_dict["block"]["type"],
             "upstream_blocks": [
-                db.query(Block)
-                .filter(Block.id == block_id.replace("_", "-"))
-                .first()
-                .name
-                for block_id in data_dict["block"]["upstream_blocks"][-36:]
+                upstream_block[-36:] for upstream_block in data_dict["block"]["upstream_blocks"]
             ],
             "uuid": data_dict["block"]["uuid"][-36:],
             "status": data_dict["block"]["status"],
