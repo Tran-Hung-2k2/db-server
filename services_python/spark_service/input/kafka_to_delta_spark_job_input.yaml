@@ -3,6 +3,16 @@ schema:
     DEVICE_ID: IntegerType
     IMSI: StringType
     TRACKER_STATE: StringType
+partition_column:
+    - DEVICE_ID
+    - IMSI
+filters:
+    -   column: TRACKER_SPEED
+        operator: ">"
+        value: 15
+    -   column: DEVICE_ID
+        operator: IN
+        value: ["device1", "device2"]
 user_id: duonghdt
 dataset_id: tracker_data_spark_2c_standalone_template
 kafka_server: 172.21.5.234:9092
