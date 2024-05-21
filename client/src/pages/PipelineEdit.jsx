@@ -39,7 +39,7 @@ const LayoutFlow = () => {
     const { fitView } = useReactFlow();
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-    const [variant, setVariant] = useState(BackgroundVariant.Cross);
+    const [variant, setVariant] = useState(BackgroundVariant.Dots);
 
     const onLayout = useCallback(
         (direction) => {
@@ -57,9 +57,8 @@ const LayoutFlow = () => {
 
     return (
         <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView>
-            <MiniMap nodeStrokeWidth={3} zoomable pannable />
             <Controls />
-            <Background color="#ccc" variant={variant} />
+            <Background color="#ddd" variant={variant} />
             <Panel className="flex items-center gap-2">
                 <div className="font-bold">Kiểu nền:</div>
                 <button className="text-white badge badge-success" onClick={() => setVariant(BackgroundVariant.Dots)}>

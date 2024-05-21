@@ -43,6 +43,7 @@ export default function Page() {
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
+            console.log(filter);
             const res = await api.getPipeline({
                 limit,
                 skip,
@@ -119,7 +120,9 @@ export default function Page() {
                         <Filter
                             filter={filter}
                             setFilter={setFilter}
-                            getStaticValues={() => ['batch', 'stream']}
+                            getStaticValues={(field) => {
+                                if (field == 'type') return ['batch', 'stream'];
+                            }}
                             filterFields={[{ name: 'type', label: 'Kiểu' }]}
                         />
 

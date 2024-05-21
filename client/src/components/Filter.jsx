@@ -11,7 +11,7 @@ export default function Component({ filter, setFilter, getValues, filterFields, 
         const fetchData = async () => {
             let res;
             if (getStaticValues != undefined) {
-                res = getStaticValues();
+                res = getStaticValues(fieldOpen);
                 setFilterValues(res);
             } else {
                 res = await getValues({ field: fieldOpen });
