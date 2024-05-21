@@ -9,20 +9,20 @@ import { FiPlus } from 'react-icons/fi';
 import { IoClose } from 'react-icons/io5';
 
 import Loader from '@components/Loader';
-import ChannelDetail from '@/components/ChannelDetail';
-import ChannelCreate from '@/components/ChannelCreate';
+import PipelineCreate from '@/components/PipelineCreate';
 
 import api from '@api/pipelines';
 
 import convertTime from '@/utils/convertTime';
 import confirm from '@/utils/confirm';
 
-import avatars from '@/constants/channel_type_image';
 import recordPerPage from '@/constants/record_per_page';
 import Pagination from '@/components/Pagination';
 import Filter from '@/components/Filter';
+import { useNavigate } from 'react-router-dom';
 
 export default function Page() {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [reload, setReload] = useState(false);
 
@@ -57,6 +57,7 @@ export default function Page() {
         };
 
         fetchData();
+        document.title = 'Pipeline | DEP';
     }, [reload, limit, skip, sortBy, sortDim, searchText, filter]);
 
     function deleteObj(id) {
@@ -64,7 +65,7 @@ export default function Page() {
             title: 'Xóa pipeline',
             message: `Xác nhận xóa vĩnh viễn pipeline.`,
             onConfirm: async () => {
-                await api.deleteChannel(id);
+                await api.deletePipeline(id);
                 setReload(!reload);
             },
         });
@@ -98,11 +99,8 @@ export default function Page() {
     return (
         <>
             <div className="flex-grow px-8 py-2">
-                <dialog id="channel_create" className="modal">
-                    <ChannelCreate reload={reload} setReload={setReload} />
-                </dialog>
-                <dialog id="channel_detail" className="modal">
-                    <ChannelDetail id={id} reload={reload} setReload={setReload} />
+                <dialog id="pipeline_create" className="modal">
+                    <PipelineCreate reload={reload} setReload={setReload} />
                 </dialog>
                 {/* Title */}
                 <h3 className="pb-4 text-xl font-bold text-neutral">Quản lý pipelines</h3>
@@ -112,7 +110,7 @@ export default function Page() {
                     <div className="flex flex-row gap-2 pb-4">
                         <button
                             className="h-10 py-2 font-bold text-white btn-sm btn btn-primary"
-                            onClick={() => document.getElementById('channel_create').showModal()}
+                            onClick={() => document.getElementById('pipeline_create').showModal()}
                         >
                             <FiPlus className="text-xl" />
                             Tạo mới
@@ -181,7 +179,7 @@ export default function Page() {
                             <thead className="bg-zinc-100">
                                 <tr>
                                     <th className="py-2 text-base text-center"></th>
-                                    <SortableColumn className="py-2" name="Name" label="Tên" />
+                                    <SortableColumn className="py-2" name="name" label="Tên" />
                                     <SortableColumn className="py-2" name="type" label="Loại" />
                                     <SortableColumn className="py-2" name="description" label="Mô tả" />
                                     <SortableColumn className="py-2" name="blocks_number" label="Số khối" />
@@ -220,8 +218,7 @@ export default function Page() {
                                                 <button
                                                     className="text-xl bg-white border-none btn btn-xs btn-ghost text-success hover:bg-success hover:text-white"
                                                     onClick={() => {
-                                                        setID(data?.id);
-                                                        document.getElementById('channel_detail').showModal();
+                                                        navigate('/pipelines/manage/edit/' + data?.uuid);
                                                     }}
                                                 >
                                                     <MdOutlineRateReview />
@@ -230,7 +227,7 @@ export default function Page() {
                                             <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Xóa">
                                                 <button
                                                     className="text-xl bg-white border-none btn btn-xs text-error hover:bg-error hover:text-white"
-                                                    onClick={() => deleteObj(data?.id)}
+                                                    onClick={() => deleteObj(data?.uuid)}
                                                 >
                                                     <MdOutlineDelete />
                                                 </button>

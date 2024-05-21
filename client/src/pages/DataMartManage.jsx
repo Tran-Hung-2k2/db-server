@@ -53,6 +53,7 @@ export default function Page() {
         };
 
         fetchData();
+        document.title = 'Data Mart | DEP';
     }, [reload, limit, skip, sortBy, sortDim, searchText]);
 
     function deleteObj(id) {

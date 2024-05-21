@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
 import fields from '@constants/form/signup';
@@ -11,6 +11,10 @@ export default function Page() {
     const [loading, setLoading] = useState(false);
     const [state, setState] = useState(fieldsState);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        document.title = 'Sign Up | DEP';
+    }, []);
 
     const handleChange = (e) => {
         setState({ ...state, [e.target.id]: e.target.value });

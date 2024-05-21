@@ -1,64 +1,96 @@
-import { useCallback, useState } from 'react';
+import Dagre from '@dagrejs/dagre';
+import React, { useCallback, useState } from 'react';
 import ReactFlow, {
-    applyEdgeChanges,
-    applyNodeChanges,
-    addEdge,
+    ReactFlowProvider,
+    Panel,
+    useNodesState,
+    useEdgesState,
+    useReactFlow,
     MiniMap,
     Controls,
     Background,
-    Panel,
+    BackgroundVariant,
 } from 'reactflow';
+
+import { initialNodes, initialEdges } from '@pages/nodes-edges.jsx';
 import 'reactflow/dist/style.css';
-import Node from '@/components/Node';
-import Egde from '@/components/Egde';
 
-function Flow() {
-    const [variant, setVariant] = useState('cross');
-    const [nodes, setNodes] = useState(Node);
-    const [edges, setEdges] = useState(Egde);
+const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
-    const nodeColor = (node) => {
-        switch (node.type) {
-            case 'input':
-                return '#6ede87';
-            case 'output':
-                return '#6865A5';
-            default:
-                return '#ff0072';
-        }
+const getLayoutedElements = (nodes, edges, options) => {
+    g.setGraph({ rankdir: options.direction });
+
+    edges.forEach((edge) => g.setEdge(edge.source, edge.target));
+    nodes.forEach((node) => g.setNode(node.id, node));
+
+    Dagre.layout(g);
+
+    return {
+        nodes: nodes.map((node) => {
+            const { x, y } = g.node(node.id);
+
+            return { ...node, position: { x, y } };
+        }),
+        edges,
     };
+};
 
-    const onNodeChange = useCallback((x) => setNodes((newNode) => applyNodeChanges(x, newNode)), [setNodes]);
+const LayoutFlow = () => {
+    const { fitView } = useReactFlow();
+    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [variant, setVariant] = useState(BackgroundVariant.Cross);
 
-    const onEdgeChange = useCallback((x) => setEdges((eds) => applyEdgeChanges(x, eds)), [setEdges]);
+    const onLayout = useCallback(
+        (direction) => {
+            const layouted = getLayoutedElements(nodes, edges, { direction });
 
-    const onEdgeConnect = useCallback((x) => setEdges((eds) => addEdge({ ...x, animated: true }, eds)), [setEdges]);
+            setNodes([...layouted.nodes]);
+            setEdges([...layouted.edges]);
+
+            window.requestAnimationFrame(() => {
+                fitView();
+            });
+        },
+        [nodes, edges],
+    );
 
     return (
-        <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodeChange}
-            onEdgesChange={onEdgeChange}
-            onConnect={onEdgeConnect}
-            fitView
-        >
-            <MiniMap nodeColor={nodeColor} nodeStrokeWidth={3} zoomable pannable />
+        <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView>
+            <MiniMap nodeStrokeWidth={3} zoomable pannable />
             <Controls />
             <Background color="#ccc" variant={variant} />
             <Panel className="flex items-center gap-2">
                 <div className="font-bold">Kiểu nền:</div>
-                <button className="text-white badge badge-success" onClick={() => setVariant('dots')}>
+                <button className="text-white badge badge-success" onClick={() => setVariant(BackgroundVariant.Dots)}>
                     Dấu chấm
                 </button>
-                <button className="badge badge-warning" onClick={() => setVariant('lines')}>
+                <button className="badge badge-warning" onClick={() => setVariant(BackgroundVariant.Lines)}>
                     Đường kẻ
                 </button>
-                <button className="text-white badge badge-error" onClick={() => setVariant('cross')}>
+                <button className="text-white badge badge-error" onClick={() => setVariant(BackgroundVariant.Cross)}>
                     Dấu cộng
                 </button>
             </Panel>
+            <Panel position="top-right">
+                <div className="flex items-center gap-2">
+                    <div className="font-bold">Sắp xếp:</div>
+                    <button className="text-white badge badge-success" onClick={() => onLayout('TB')}>
+                        Chiều dọc
+                    </button>
+                    <button className="text-white badge badge-success" onClick={() => onLayout('LR')}>
+                        Chiều ngang
+                    </button>
+                </div>
+            </Panel>
         </ReactFlow>
     );
+};
+
+export default function () {
+    return (
+        <ReactFlowProvider>
+            <LayoutFlow />
+        </ReactFlowProvider>
+    );
 }
-export default Flow;

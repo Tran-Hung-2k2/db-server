@@ -57,7 +57,7 @@ const routes = [
                         component: DatasetManage,
                     },
                     {
-                        path: '/pipelines/manage/edit',
+                        path: '/pipelines/manage/edit/:id',
                         component: PipelineEdit,
                     },
                     {

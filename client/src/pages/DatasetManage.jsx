@@ -19,7 +19,6 @@ import confirm from '@/utils/confirm';
 
 import recordPerPage from '@/constants/record_per_page';
 import Pagination from '@/components/Pagination';
-import { ToastContainer } from 'react-toastify';
 
 export default function Page() {
     const [loading, setLoading] = useState(false);
@@ -53,6 +52,7 @@ export default function Page() {
         };
 
         fetchData();
+        document.title = 'Dataset | DEP';
     }, [reload, limit, skip, sortBy, sortDim, searchText]);
 
     function deleteObj(id) {
