@@ -13,6 +13,8 @@ const ChannelManage = lazy(() => import('@pages/ChannelManage'));
 const DataMartManage = lazy(() => import('@pages/DataMartManage'));
 const DatasetManage = lazy(() => import('@/pages/DatasetManage'));
 const MLOpsManage = lazy(() => import('@pages/MLOpsManage'));
+const PipelineManage = lazy(() => import('@pages/PipelineManage'));
+const PipelineEdit = lazy(() => import('@pages/PipelineEdit'));
 
 const routes = [
     // Unauthorized routes
@@ -55,8 +57,12 @@ const routes = [
                         component: DatasetManage,
                     },
                     {
+                        path: '/pipelines/manage/edit/:id',
+                        component: PipelineEdit,
+                    },
+                    {
                         path: '/pipelines/manage',
-                        component: DataMartManage,
+                        component: PipelineManage,
                     },
                     {
                         path: '/mlops/experiments/manage',

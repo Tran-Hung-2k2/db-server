@@ -11,23 +11,19 @@ import uvicorn  # type: ignore
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from services_python.mage_service.app.api.v1 import router
+from services_python.mage_service.app.api import router
 
 # from services_python.mage_service.app.database import engine
 # from services_python.mage_service.app.models import Base
 from services_python.utils.exception import MyException, my_exception_handler
+from services_python.middlewares.cors import add_cors_middleware
+
 
 # Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+add_cors_middleware(app)
 
 app.include_router(router)
 

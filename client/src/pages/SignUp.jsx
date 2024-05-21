@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 
 import fields from '@constants/form/signup';
@@ -11,6 +11,10 @@ export default function Page() {
     const [loading, setLoading] = useState(false);
     const [state, setState] = useState(fieldsState);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        document.title = 'Sign Up | DEP';
+    }, []);
 
     const handleChange = (e) => {
         setState({ ...state, [e.target.id]: e.target.value });
@@ -43,14 +47,14 @@ export default function Page() {
                     switch (field.type) {
                         case 'password':
                             return (
-                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                <label key={field.id} className="flex items-center gap-2 input input-primary">
                                     {field.icon}
                                     <InputPassword onChange={handleChange} {...field} className="grow" />
                                 </label>
                             );
                         default:
                             return (
-                                <label key={field.id} class="input input-primary flex items-center gap-2">
+                                <label key={field.id} className="flex items-center gap-2 input input-primary">
                                     {field.icon}
                                     <input onChange={handleChange} {...field} className="grow" />
                                 </label>

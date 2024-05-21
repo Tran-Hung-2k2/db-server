@@ -1,7 +1,13 @@
+import { batch } from 'react-redux';
+
 const label = {
     role: {
         ADMIN: 'Admin',
         USER: 'User',
+    },
+    pipeline_type: {
+        batch: 'batch',
+        stream: 'stream',
     },
     channel_type: {
         PostgreSQL: 'PostgreSQL',

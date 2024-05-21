@@ -33,10 +33,10 @@ docker-compose:
 
 # Python requirement
 imreq:
-	pip install -r services_python/data_service/requirements.txt
+	pip install -r services_python/datasets_service/requirements.txt
 
 exreq:
-	pip freeze > services_python/data_service/requirements.txt
+	pip freeze > services_python/datasets_service/requirements.txt
 
 # Run Service
 ifeq ($(OS),Windows_NT)
@@ -50,7 +50,7 @@ magesrv:
 	$(PYTHON) services_python/mage_service/app/main.py
 
 setsrv:
-	$(PYTHON) services_python/data_service/app/main.py
+	$(PYTHON) services_python/datasets_service/app/main.py
 
 authsrv: 
 	cd services_go && go run cmd/auth/main.go

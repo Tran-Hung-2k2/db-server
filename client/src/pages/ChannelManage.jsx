@@ -57,6 +57,7 @@ export default function Page() {
         };
 
         fetchData();
+        document.title = 'Channel | DEP';
     }, [reload, limit, skip, sortBy, sortDim, searchText, filter]);
 
     function deleteObj(id) {

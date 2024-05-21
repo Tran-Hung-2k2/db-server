@@ -9,6 +9,7 @@ const api_notify = [
     { url: '/api/channels', methods: ['post', 'patch', 'delete'] },
     { url: '/api/datasets', methods: ['post', 'patch', 'delete'] },
     { url: '/api/data_marts', methods: ['post', 'patch', 'delete'] },
+    { url: '/api/pipelines', methods: ['post', 'patch', 'delete'] },
 ];
 
 const service = axios.create({

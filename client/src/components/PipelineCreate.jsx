@@ -1,34 +1,23 @@
 import { IoClose } from 'react-icons/io5';
-import FormEdit from './FormEdit';
-import fields from '@/constants/form/channels';
-import api from '@/api/channels';
+import FormCreate from './FormCreate';
+import fields from '@/constants/form/pipelines';
+import api from '@/api/pipelines';
 
-export default function Component({ reload, setReload, id }) {
+export default function Component({ reload, setReload }) {
     const handleSubmit = async (e, data) => {
         e.preventDefault();
         const { name, type, description, ...config } = data;
 
         const newData = {
             name,
+            type,
             description,
             config,
         };
 
-        await api.updateChannel(newData, id);
+        await api.createPipeline(newData);
         setReload(!reload);
-        document.getElementById('channel_detail').close();
-    };
-
-    const getData = async () => {
-        if (!id) return {};
-        const res = await api.getChannel({ id });
-        const data = res.data[0];
-        return {
-            name: data.name,
-            description: data.description,
-            type: data.type,
-            ...data.config,
-        };
+        document.getElementById('pipeline_create').close();
     };
 
     return (
@@ -40,13 +29,7 @@ export default function Component({ reload, setReload, id }) {
                         <IoClose />
                     </button>
                 </form>
-                <FormEdit
-                    reload={id}
-                    fields={fields}
-                    getData={getData}
-                    title="Sửa thông tin nguồn dữ liệu"
-                    onSubmit={handleSubmit}
-                />
+                <FormCreate fields={fields} title="Tạo pipeline mới" onSubmit={handleSubmit} />
             </div>
             <form method="dialog" className="modal-backdrop">
                 <button></button>

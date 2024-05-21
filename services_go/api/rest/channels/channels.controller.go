@@ -26,7 +26,7 @@ func GetChannelDistinctValues(ctx *gin.Context) {
 	}
 
 	var records []string
-	result := db.DB.Model(&models.Channel{}).Distinct(field).Pluck(field, &records)
+	result := db.DB.Model(&models.Channel{}).Where("user_id", ctx.GetString(constants.USER_ID_KEY)).Distinct(field).Pluck(field, &records)
 
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, utils.MakeResponse("Có lỗi xảy ra, vui lòng thử lại sau.", nil, result.Error.Error()))

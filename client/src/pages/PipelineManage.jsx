@@ -9,19 +9,20 @@ import { FiPlus } from 'react-icons/fi';
 import { IoClose } from 'react-icons/io5';
 
 import Loader from '@components/Loader';
-import DataMartCreate from '@/components/DataMartCreate';
-import DataMartDetail from '@/components/DataMartDetail';
+import PipelineCreate from '@/components/PipelineCreate';
 
-import api from '@/api/data_marts';
+import api from '@api/pipelines';
 
 import convertTime from '@/utils/convertTime';
 import confirm from '@/utils/confirm';
 
 import recordPerPage from '@/constants/record_per_page';
 import Pagination from '@/components/Pagination';
-import { ToastContainer } from 'react-toastify';
+import Filter from '@/components/Filter';
+import { useNavigate } from 'react-router-dom';
 
 export default function Page() {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [reload, setReload] = useState(false);
 
@@ -37,15 +38,19 @@ export default function Page() {
     const [id, setID] = useState('');
     const [dataList, setDataList] = useState([]);
 
+    const [filter, setFilter] = useState({});
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            const res = await api.getDataMart({
+            console.log(filter);
+            const res = await api.getPipeline({
                 limit,
                 skip,
                 sort_by: sortBy,
                 sort_dim: sortDim,
                 name: searchText,
+                ...filter,
             });
             setTotal(res.total);
             setDataList(res.data);
@@ -53,15 +58,15 @@ export default function Page() {
         };
 
         fetchData();
-        document.title = 'Data Mart | DEP';
-    }, [reload, limit, skip, sortBy, sortDim, searchText]);
+        document.title = 'Pipeline | DEP';
+    }, [reload, limit, skip, sortBy, sortDim, searchText, filter]);
 
     function deleteObj(id) {
         confirm({
-            title: 'Xóa kho dữ liệu',
-            message: `Xác nhận xóa vĩnh viễn kho dữ liệu.`,
+            title: 'Xóa pipeline',
+            message: `Xác nhận xóa vĩnh viễn pipeline.`,
             onConfirm: async () => {
-                await api.deleteDataMart(id);
+                await api.deletePipeline(id);
                 setReload(!reload);
             },
         });
@@ -95,27 +100,31 @@ export default function Page() {
     return (
         <>
             <div className="flex-grow px-8 py-2">
-                <dialog id="data_mart_create" className="modal">
-                    <ToastContainer containerId="data_mart_create" style={{ zIndex: 9999 }} position="top-right" />
-                    <DataMartCreate reload={reload} setReload={setReload} />
-                </dialog>
-                <dialog id="data_mart_detail" className="modal">
-                    <ToastContainer containerId="data_mart_detail" style={{ zIndex: 9999 }} position="top-right" />
-                    <DataMartDetail id={id} reload={reload} setReload={setReload} />
+                <dialog id="pipeline_create" className="modal">
+                    <PipelineCreate reload={reload} setReload={setReload} />
                 </dialog>
                 {/* Title */}
-                <h3 className="pb-4 text-xl font-bold text-neutral">Quản lý kho dữ liệu</h3>
+                <h3 className="pb-4 text-xl font-bold text-neutral">Quản lý pipelines</h3>
 
                 {/* Action bar*/}
                 <div className="flex justify-between">
                     <div className="flex flex-row gap-2 pb-4">
                         <button
                             className="h-10 py-2 font-bold text-white btn-sm btn btn-primary"
-                            onClick={() => document.getElementById('data_mart_create').showModal()}
+                            onClick={() => document.getElementById('pipeline_create').showModal()}
                         >
                             <FiPlus className="text-xl" />
                             Tạo mới
                         </button>
+
+                        <Filter
+                            filter={filter}
+                            setFilter={setFilter}
+                            getStaticValues={(field) => {
+                                if (field == 'type') return ['batch', 'stream'];
+                            }}
+                            filterFields={[{ name: 'type', label: 'Kiểu' }]}
+                        />
 
                         <label className="flex items-center h-10 gap-2 py-2 pl-2 w-fit input input-primary focus-within:outline-none focus-within:ring-primary focus-within:ring-1">
                             <IoSearch className="opacity-70" size={20} />
@@ -174,7 +183,10 @@ export default function Page() {
                                 <tr>
                                     <th className="py-2 text-base text-center"></th>
                                     <SortableColumn className="py-2" name="name" label="Tên" />
+                                    <SortableColumn className="py-2" name="type" label="Loại" />
                                     <SortableColumn className="py-2" name="description" label="Mô tả" />
+                                    <SortableColumn className="py-2" name="blocks_number" label="Số khối" />
+                                    <SortableColumn className="py-2" name="schedules_number" label="Số trigger" />
                                     <SortableColumn className="py-2" name="created_at" label="Thời gian tạo" />
                                     <SortableColumn className="py-2" name="updated_at" label="Lần sửa đổi cuối" />
                                     <th className="py-2 text-base"></th>
@@ -183,27 +195,33 @@ export default function Page() {
                             <tbody>
                                 {dataList?.map((data, index) => (
                                     <tr key={index}>
-                                        <td className="py-2 text-center">
+                                        <td className="py-0 text-center">
                                             <div className="text-base font-semibold">
                                                 {parseInt(index) + parseInt(skip) + 1}
                                             </div>
                                         </td>
-                                        <td className="p-0">
+                                        <td>
                                             <div>
                                                 <div className="text-base font-semibold">{data?.name}</div>
                                             </div>
                                         </td>
-                                        <td className="py-2 text-justify min-w-60">{data?.description}</td>
-                                        <td className="py-2 font-mono">{convertTime(data?.created_at)}</td>
-                                        <td className="py-2 font-mono">{convertTime(data?.updated_at)}</td>
+                                        <td className="py-0">
+                                            <span className="font-semibold badge badge-ghost badge-base h-fit ">
+                                                {data?.type}
+                                            </span>
+                                        </td>
+                                        <td className="py-0 text-justify min-w-56">{data?.description}</td>
+                                        <td className="py-0">{data?.blocks_number}</td>
+                                        <td className="py-0">{data?.schedules_number}</td>
+                                        <td className="py-0 font-mono">{convertTime(data?.created_at)}</td>
+                                        <td className="py-0 font-mono">{convertTime(data?.updated_at)}</td>
 
-                                        <td className="py-2 ">
+                                        <td className="py-0 ">
                                             <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Chi tiết">
                                                 <button
                                                     className="text-xl bg-white border-none btn btn-xs btn-ghost text-success hover:bg-success hover:text-white"
                                                     onClick={() => {
-                                                        setID(data?.id);
-                                                        document.getElementById('data_mart_detail').showModal();
+                                                        navigate('/pipelines/manage/edit/' + data?.uuid);
                                                     }}
                                                 >
                                                     <MdOutlineRateReview />
@@ -212,7 +230,7 @@ export default function Page() {
                                             <div className="tooltip tooltip-accent tooltip-bottom" data-tip="Xóa">
                                                 <button
                                                     className="text-xl bg-white border-none btn btn-xs text-error hover:bg-error hover:text-white"
-                                                    onClick={() => deleteObj(data?.id)}
+                                                    onClick={() => deleteObj(data?.uuid)}
                                                 >
                                                     <MdOutlineDelete />
                                                 </button>
