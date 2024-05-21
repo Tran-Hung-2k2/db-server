@@ -442,11 +442,11 @@ async def get_one_block(
         {
             "name": exist_block.name,
             "downstream_blocks": [
-                data_dict["block"]["downstream_blocks"][-36:]
+                downstream_block[-36:] for downstream_block in data_dict["block"]["downstream_blocks"]
             ],
             "type": data_dict["block"]["type"],
             "upstream_blocks": [
-                data_dict["block"]["upstream_blocks"][-36:]
+                upstream_block[-36:] for upstream_block in data_dict["block"]["upstream_blocks"]
             ],
             "uuid": data_dict["block"]["uuid"][-36:],
             "status": data_dict["block"]["status"],
