@@ -1,0 +1,22 @@
+from deltalake.writer import write_deltalake
+if 'data_exporter' not in globals():
+    from mage_ai.data_preparation.decorators import data_exporter
+
+@data_exporter
+def export_data(df, *args, **kwargs):
+    storage_options = {
+        'MINIO_ACCESS_KEY_ID': '{{ config.get("MINIO_ACCESS_KEY_ID", "rUsDgAVuMUyHE0kaNgjI") }}',
+        'MINIO_SECRET_ACCESS_KEY': '{{ config.get("MINIO_SECRET_ACCESS_KEY", "QfcyE72ETAHUjr9yMhZfFnM2Gh2TrJv93sfpfYGD") }}',
+        'MINIO_ENDPOINT_URL': '{{ config.get("MINIO_ENDPOINT_URL", "http://127.0.0.1:9000") }}',
+        'MINIO_ALLOW_HTTP': 'true',
+        'MINIO_REGION': 'us-east-1',
+        'MINIO_S3_ALLOW_UNSAFE_RENAME': 'true',
+    }
+    uri = f's3://{{ config["USER_ID"] }}/{{ config["DATA_MART_ID"] }}'
+    write_deltalake(
+        uri,
+        data=df,
+        mode='{{ config["MODE"] }}',
+        overwrite_schema=False,
+        storage_options=storage_options,
+    )
