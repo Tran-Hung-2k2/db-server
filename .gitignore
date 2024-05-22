@@ -1,5 +1,6 @@
 .vscode
 env_DEP
+.env
 env
 data
 minio

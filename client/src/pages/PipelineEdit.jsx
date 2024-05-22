@@ -1,95 +1,88 @@
-import Dagre from '@dagrejs/dagre';
-import React, { useCallback, useState } from 'react';
-import ReactFlow, {
-    ReactFlowProvider,
-    Panel,
-    useNodesState,
-    useEdgesState,
-    useReactFlow,
-    MiniMap,
-    Controls,
-    Background,
-    BackgroundVariant,
-} from 'reactflow';
-
-import { initialNodes, initialEdges } from '@pages/nodes-edges.jsx';
+import React, { useState, useRef, useCallback } from 'react';
+import ReactFlow, { ReactFlowProvider, addEdge, useNodesState, useEdgesState, Controls } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
+import Sidebar from './Sidebar';
 
-const getLayoutedElements = (nodes, edges, options) => {
-    g.setGraph({ rankdir: options.direction });
+import './index.css';
 
-    edges.forEach((edge) => g.setEdge(edge.source, edge.target));
-    nodes.forEach((node) => g.setNode(node.id, node));
+const initialNodes = [
+    {
+        id: '1',
+        type: 'input',
+        data: { label: 'input node' },
+        position: { x: 250, y: 5 },
+    },
+];
 
-    Dagre.layout(g);
+let id = 0;
+const getId = () => `dndnode_${id++}`;
 
-    return {
-        nodes: nodes.map((node) => {
-            const { x, y } = g.node(node.id);
-
-            return { ...node, position: { x, y } };
-        }),
-        edges,
-    };
-};
-
-const LayoutFlow = () => {
-    const { fitView } = useReactFlow();
+const DnDFlow = () => {
+    const reactFlowWrapper = useRef(null);
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-    const [variant, setVariant] = useState(BackgroundVariant.Dots);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
-    const onLayout = useCallback(
-        (direction) => {
-            const layouted = getLayoutedElements(nodes, edges, { direction });
+    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
 
-            setNodes([...layouted.nodes]);
-            setEdges([...layouted.edges]);
+    const onDragOver = useCallback((event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
 
-            window.requestAnimationFrame(() => {
-                fitView();
+    const onDrop = useCallback(
+        (event) => {
+            event.preventDefault();
+
+            const type = event.dataTransfer.getData('application/reactflow');
+
+            // check if the dropped element is valid
+            if (typeof type === 'undefined' || !type) {
+                return;
+            }
+
+            // reactFlowInstance.project was renamed to reactFlowInstance.screenToFlowPosition
+            // and you don't need to subtract the reactFlowBounds.left/top anymore
+            // details: https://reactflow.dev/whats-new/2023-11-10
+            const position = reactFlowInstance.screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
             });
+            const newNode = {
+                id: getId(),
+                type,
+                position,
+                data: { label: `${type} node` },
+            };
+
+            setNodes((nds) => nds.concat(newNode));
         },
-        [nodes, edges],
+        [reactFlowInstance],
     );
 
     return (
-        <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView>
-            <Controls />
-            <Background color="#ddd" variant={variant} />
-            <Panel className="flex items-center gap-2">
-                <div className="font-bold">Kiểu nền:</div>
-                <button className="text-white badge badge-success" onClick={() => setVariant(BackgroundVariant.Dots)}>
-                    Dấu chấm
-                </button>
-                <button className="badge badge-warning" onClick={() => setVariant(BackgroundVariant.Lines)}>
-                    Đường kẻ
-                </button>
-                <button className="text-white badge badge-error" onClick={() => setVariant(BackgroundVariant.Cross)}>
-                    Dấu cộng
-                </button>
-            </Panel>
-            <Panel position="top-right">
-                <div className="flex items-center gap-2">
-                    <div className="font-bold">Sắp xếp:</div>
-                    <button className="text-white badge badge-success" onClick={() => onLayout('TB')}>
-                        Chiều dọc
-                    </button>
-                    <button className="text-white badge badge-success" onClick={() => onLayout('LR')}>
-                        Chiều ngang
-                    </button>
+        <div className="dndflow">
+            <ReactFlowProvider>
+                <div className="reactflow-wrapper" ref={reactFlowWrapper}>
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={onNodesChange}
+                        onEdgesChange={onEdgesChange}
+                        onConnect={onConnect}
+                        onInit={setReactFlowInstance}
+                        onDrop={onDrop}
+                        onDragOver={onDragOver}
+                        fitView
+                    >
+                        <Controls />
+                    </ReactFlow>
                 </div>
-            </Panel>
-        </ReactFlow>
+                <Sidebar />
+            </ReactFlowProvider>
+        </div>
     );
 };
 
-export default function () {
-    return (
-        <ReactFlowProvider>
-            <LayoutFlow />
-        </ReactFlowProvider>
-    );
-}
+export default DnDFlow;
