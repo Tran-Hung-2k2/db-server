@@ -1,0 +1,33 @@
+from mage_ai.io.s3 import S3
+from os import path
+
+if 'data_loader' not in globals():
+    from mage_ai.data_preparation.decorators import data_loader
+
+if 'test' not in globals():
+    from mage_ai.data_preparation.decorators import test
+
+@data_loader
+def load_from_s3_bucket(*args, **kwargs):
+    config = {
+        "AWS_ACCESS_KEY_ID": "{{ config['AWS_ACCESS_KEY_ID'] }}",
+        "AWS_SECRET_ACCESS_KEY": "{{ config['AWS_SECRET_ACCESS_KEY'] }}",
+        "AWS_REGION": "{{ config['AWS_REGION'] }}",
+        "AWS_ENDPOINT": "{{ config['AWS_ENDPOINT'] }}",
+    }
+    bucket_name = "{{ config['BUCKET_NAME'] }}"
+    object_key = "{{ config['OBJECT_KEY'] }}"
+    {% if config['LIMIT'] %}
+    "limit": "{{ config['LIMIT'] }}",
+    {% endif %}
+    with S3(
+        aws_access_key_id=config['AWS_ACCESS_KEY_ID'],
+        aws_secret_access_key=config['AWS_SECRET_ACCESS_KEY'],
+        region_name=config['AWS_REGION'],
+        endpoint_url=config['AWS_ENDPOINT'],
+    ) as loader:
+        return loader.load(bucket_name=bucket_name, object_key=object_key{% if config['LIMIT'] %},limit=limit{% endif %})
+
+@test
+def test_output(output, *args) -> None:
+    assert output is not None, 'The output is undefined'

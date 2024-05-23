@@ -17,7 +17,7 @@ class BlockCreate(BaseModel):
     name: str
     block_type: Literal["data_loader", "transformer", "data_exporter"]
     source_type: str
-    source_config: str
+    source_config: dict
     description: Optional[str] = None
 
 

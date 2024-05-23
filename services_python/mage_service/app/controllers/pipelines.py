@@ -44,7 +44,11 @@ async def get_all_pipelines(
         sort_dim = "-"
     else:
         sort_dim = ""
-    search = unidecode(query_params.get("search", "")).lower()
+    search = unidecode(query_params.get("search", "")).lower().strip().replace(" ", "_")
+    if search != "":
+        search = f"&search=pipeline_{search}"
+    else:
+        search = ""
     pipeline_type = query_params.get("type", "").lower()
     if pipeline_type in ["stream"]:
         pipeline_type = "&type[]=streaming"
@@ -52,7 +56,7 @@ async def get_all_pipelines(
         pipeline_type = "&type[]=python"
     else:
         pipeline_type = ""
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}&include_schedules=1&_order_by[]={sort_dim}{sort_by}&search={search}{pipeline_type}"
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}&include_schedules=1&_order_by[]={sort_dim}{sort_by}{search}{pipeline_type}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
@@ -442,11 +446,13 @@ async def get_one_block(
         {
             "name": exist_block.name,
             "downstream_blocks": [
-                downstream_block[-36:] for downstream_block in data_dict["block"]["downstream_blocks"]
+                downstream_block[-36:]
+                for downstream_block in data_dict["block"]["downstream_blocks"]
             ],
             "type": data_dict["block"]["type"],
             "upstream_blocks": [
-                upstream_block[-36:] for upstream_block in data_dict["block"]["upstream_blocks"]
+                upstream_block[-36:]
+                for upstream_block in data_dict["block"]["upstream_blocks"]
             ],
             "uuid": data_dict["block"]["uuid"][-36:],
             "status": data_dict["block"]["status"],
@@ -468,29 +474,7 @@ async def get_one_block(
         status_code=status.HTTP_200_OK,
     )
 
-
-def get_block_content(block_type, source_type, source_config):
-    if block_type == "data_loader":
-        if source_type == "postgres":
-            from services_python.mage_service.template.datasource.postgres import (
-                get_string,
-                check_config_keys,
-            )
-
-            if check_config_keys(source_config):
-                return get_string(source_config)
-        elif source_type == "mysql":
-            pass
-        elif source_type == "mongodb":
-            pass
-        elif source_type == "amazon_s3":
-            pass
-        elif source_type == "test":
-            return "Hello worldd"
-        else:
-            pass
-    elif block_type == "data_exporter":
-        pass
+from services_python.mage_service.template.get_block_content import get_block_content
 
 
 @handle_database_errors
@@ -545,17 +529,19 @@ async def create_block(
         name=data.name,
         pipeline_id=exist_pipeline.id,
         source_type=data.source_type,
-        source_config=data.source_config,
+        source_config=json.dumps(data.source_config),
         block_type=data.block_type,
     )
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
+    print(type(json.loads(new_record.source_config)))
     content = get_block_content(
-        new_record.block_type, new_record.source_type, new_record.source_config
+        block_type=new_record.block_type,
+        source_type=new_record.source_type,
+        source_config=json.loads(new_record.source_config),
     )
     language = "python"
-    print(str(new_record.id))
     extracted_info = {
         "block": {
             "name": "block_"
@@ -583,19 +569,13 @@ async def create_block(
             {
                 "name": new_record.name,
                 "downstream_blocks": [
-                    db.query(Block)
-                    .filter(Block.id == block_id.replace("_", "-"))
-                    .first()
-                    .name
-                    for block_id in data_dict["block"]["downstream_blocks"]
+                    downstream_block[-36:]
+                    for downstream_block in data_dict["block"]["downstream_blocks"]
                 ],
                 "type": data_dict["block"]["type"],
                 "upstream_blocks": [
-                    db.query(Block)
-                    .filter(Block.id == block_id.replace("_", "-"))
-                    .first()
-                    .name
-                    for block_id in data_dict["block"]["upstream_blocks"]
+                    upstream_block[-36:]
+                    for upstream_block in data_dict["block"]["upstream_blocks"]
                 ],
                 "uuid": data_dict["block"]["uuid"][-36:],
                 "status": data_dict["block"]["status"],
@@ -724,19 +704,13 @@ async def update_block(
             {
                 "name": exist_block.name,
                 "downstream_blocks": [
-                    db.query(Block)
-                    .filter(Block.id == block_id[-36:].replace("_", "-"))
-                    .first()
-                    .name
-                    for block_id in data_dict["block"]["downstream_blocks"]
+                    downstream_block[-36:]
+                    for downstream_block in data_dict["block"]["downstream_blocks"]
                 ],
                 "type": data_dict["block"]["type"],
                 "upstream_blocks": [
-                    db.query(Block)
-                    .filter(Block.id == block_id[-36:].replace("_", "-"))
-                    .first()
-                    .name
-                    for block_id in data_dict["block"]["upstream_blocks"]
+                    upstream_block[-36:]
+                    for upstream_block in data_dict["block"]["upstream_blocks"]
                 ],
                 "uuid": data_dict["block"]["uuid"][-36:],
                 "status": data_dict["block"]["status"],
@@ -816,19 +790,13 @@ async def delete_one_block(
             {
                 "name": exist_block.name,
                 "downstream_blocks": [
-                    db.query(Block)
-                    .filter(Block.id == block_id.replace("_", "-"))
-                    .first()
-                    .name
-                    for block_id in data_dict["block"]["downstream_blocks"]
+                    downstream_block[-36:]
+                    for downstream_block in data_dict["block"]["downstream_blocks"]
                 ],
                 "type": data_dict["block"]["type"],
                 "upstream_blocks": [
-                    db.query(Block)
-                    .filter(Block.id == block_id.replace("_", "-"))
-                    .first()
-                    .name
-                    for block_id in data_dict["block"]["upstream_blocks"]
+                    upstream_block[-36:]
+                    for upstream_block in data_dict["block"]["upstream_blocks"]
                 ],
                 "uuid": data_dict["block"]["uuid"][-36:],
                 "status": data_dict["block"]["status"],

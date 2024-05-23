@@ -1,0 +1,23 @@
+import io
+import pandas as pd
+import requests
+if 'data_loader' not in globals():
+    from mage_ai.data_preparation.decorators import data_loader
+if 'test' not in globals():
+    from mage_ai.data_preparation.decorators import test
+
+@data_loader
+def load_data_from_api(*args, **kwargs):
+    url = '{{ config['API_URL'] }}'
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        df = pd.DataFrame(data)
+    else:
+        print('Failed to retrieve data. Status code:', response.status_code)
+        df = pd.DataFrame()
+    return df
+
+@test
+def test_output(output, *args) -> None:
+    assert output is not None, 'The output is undefined'
