@@ -44,7 +44,7 @@ async def get_all_pipelines(
         sort_dim = "-"
     else:
         sort_dim = ""
-    search = unidecode(query_params.get("search", "")).lower().strip().replace(" ", "_")
+    search = unidecode(query_params.get("name", "")).lower().strip().replace(" ", "_")
     if search != "":
         search = f"&search=pipeline_{search}"
     else:
@@ -200,7 +200,7 @@ async def create_pipelines(
     new_record = Pipeline(
         name=data.name, pipeline_type=data.type, user_id=request.state.id
     )
-    pipeline_type = new_record.pipeline_type
+    pipeline_type = data.type
     description = data.description
 
     db.add(new_record)
@@ -474,6 +474,7 @@ async def get_one_block(
         status_code=status.HTTP_200_OK,
     )
 
+
 from services_python.mage_service.template.get_block_content import get_block_content
 
 
@@ -535,7 +536,6 @@ async def create_block(
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
-    print(type(json.loads(new_record.source_config)))
     content = get_block_content(
         block_type=new_record.block_type,
         source_type=new_record.source_type,
@@ -734,7 +734,7 @@ async def update_block(
             status_code=status.HTTP_200_OK,
         )
     else:
-        extracted_data = {}
+        extracted_data = []
         detail = data_dict["error"]["exception"]
         message = "Sửa block thất bại"
         return JSONResponse(
@@ -818,7 +818,7 @@ async def delete_one_block(
             status_code=status.HTTP_200_OK,
         )
     else:
-        extracted_data = {}
+        extracted_data = []
         detail = data_dict["error"]["exception"]
         message = "Xóa block thất bại"
         return JSONResponse(
@@ -840,47 +840,58 @@ async def get_all_pipeline_schedules(
     db: Session,
     request: Request,
 ):
+
     query_params = dict(request.query_params)
-    # Lấy giá trị skip và limit từ query_params
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
-
-    # Giới hạn giá trị limit trong khoảng từ 0 đến 200
     limit = min(max(int(limit), 0), 200)
 
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules?_limit={limit}&_offset={skip}"
+    schedule_pipeline_type = query_params.get("type", "").lower()
+    if schedule_pipeline_type in ["api"]:
+        schedule_pipeline_type = "&schedule_type[]=api"
+    elif schedule_pipeline_type in ["time"]:
+        schedule_pipeline_type = "&schedule_type[]=time"
+    else:
+        schedule_pipeline_type = ""
+
+    schedule_pipeline_interval = query_params.get("interval", "").lower()
+    if schedule_pipeline_interval in ["once"]:
+        schedule_pipeline_interval = "&schedule_interval[]=@once"
+    elif schedule_pipeline_interval in ["hourly"]:
+        schedule_pipeline_interval = "&schedule_interval[]=@hourly"
+    else:
+        schedule_pipeline_interval = ""
+    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules?_limit={limit}&_offset={skip}{schedule_pipeline_type}{schedule_pipeline_interval}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
-    extracted_data = {
-        "pipeline_schedules": [
-            {
-                "created_at": schedule["created_at"],
-                "updated_at": schedule["updated_at"],
-                "description": schedule["description"],
-                "name": schedule["name"],
-                "settings": schedule["settings"],
-                "tags": schedule["tags"],
-                "id": schedule["id"],
-                "last_enabled_at": schedule["last_enabled_at"],
-                "pipeline_uuid": schedule["pipeline_uuid"],
-                "schedule_interval": schedule["schedule_interval"],
-                "schedule_type": schedule["schedule_type"],
-                "start_time": schedule["start_time"],
-                "status": schedule["status"],
-                "token": schedule["token"],
-                # "variables": schedule["variables"],
-                "last_pipeline_run_status": schedule["last_pipeline_run_status"],
-                "next_pipeline_run_date": schedule["next_pipeline_run_date"],
-                "pipeline_in_progress_runs_count": schedule[
-                    "pipeline_in_progress_runs_count"
-                ],
-                "pipeline_runs_count": schedule["pipeline_runs_count"],
-            }
-            for schedule in data_dict["pipeline_schedules"]
-        ],
-        "metadata": {"count": data_dict["metadata"]["count"]},
-    }
+    extracted_data = [
+        {
+            "created_at": schedule["created_at"],
+            "updated_at": schedule["updated_at"],
+            "description": schedule["description"],
+            "name": db.query(PipelineSchedule)
+            .filter((PipelineSchedule.id == schedule.get("id").replace("_", "-")))
+            .first()
+            .name,
+            "settings": schedule["settings"],
+            "id": schedule["id"],
+            "last_enabled_at": schedule["last_enabled_at"],
+            "schedule_interval": schedule["schedule_interval"],
+            "schedule_type": schedule["schedule_type"],
+            "start_time": schedule["start_time"],
+            "status": schedule["status"],
+            "token": schedule["token"],
+            # "variables": schedule["variables"],
+            "last_pipeline_run_status": schedule["last_pipeline_run_status"],
+            "next_pipeline_run_date": schedule["next_pipeline_run_date"],
+            "pipeline_in_progress_runs_count": schedule[
+                "pipeline_in_progress_runs_count"
+            ],
+            "pipeline_runs_count": schedule["pipeline_runs_count"],
+        }
+        for schedule in data_dict["pipeline_schedules"]
+    ]
     return JSONResponse(
         content={
             "data": extracted_data,
@@ -900,22 +911,43 @@ async def create_pipeline_schedules(
     db: Session,
     request: Request,
 ):
-    name = data.name
-    id = data.id
-    description = data.description
-    schedule_interval = data.schedule_interval
-    schedule_type = data.schedule_type
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    new_record = PipelineSchedule(
+        name=data.name,
+        pipeline_schedule_type=data.pipeline_schedule_type,
+        pipeline_schedule_interval=data.pipeline_schedule_interval,
+        pipeline_schedule_start_time=data.pipeline_schedule_start_time,
+    )
+    db.add(new_record)
+    db.commit()
+    db.refresh(new_record)
     settings = data.settings
-    start_time = data.start_time
+    description = data.description
+
     pipeline_schedule = {
         "pipeline_schedule": {
-            "name": name,
-            "id": id,
+            "name": "schedule_"
+            + unidecode(new_record.name.replace(" ", "_"))
+            + "_"
+            + str(new_record.id),
+            "id": str(new_record.id),
             "description": description,
-            "schedule_interval": schedule_interval,
-            "schedule_type": schedule_type,
+            "schedule_interval": new_record.pipeline_schedule_interval,
+            "schedule_type": new_record.pipeline_schedule_type,
             "settings": settings,
-            "start_time": start_time,
+            "start_time": new_record.pipeline_schedule_start_time,
         }
     }
 
@@ -923,52 +955,44 @@ async def create_pipeline_schedules(
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=pipeline_schedule, headers=headers)
     data_dict = response.json()
-    print(data_dict)
     if "error" not in data_dict:
-        extracted_data = {
-            "pipeline_schedule": [
-                {
-                    "created_at": data_dict["pipeline_schedule"]["created_at"],
-                    "updated_at": data_dict["pipeline_schedule"]["updated_at"],
-                    "description": data_dict["pipeline_schedule"]["description"],
-                    "name": data_dict["pipeline_schedule"]["name"],
-                    "settings": data_dict["pipeline_schedule"]["settings"],
-                    # "tags": data_dict["pipeline_schedule"]["tags"],
-                    "id": data_dict["pipeline_schedule"]["id"],
-                    "last_enabled_at": data_dict["pipeline_schedule"][
-                        "last_enabled_at"
-                    ],
-                    "pipeline_uuid": data_dict["pipeline_schedule"]["pipeline_uuid"],
-                    "schedule_interval": data_dict["pipeline_schedule"][
-                        "schedule_interval"
-                    ],
-                    "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
-                    "start_time": data_dict["pipeline_schedule"]["start_time"],
-                    "status": data_dict["pipeline_schedule"]["status"],
-                    "token": data_dict["pipeline_schedule"]["token"],
-                    # "variables": data_dict["pipeline_schedule"]["variables"],
-                }
-            ],
-            "metadata": data_dict["metadata"],
-        }
-        message = "Tạo schedule thành công"
+        extracted_data = [
+            {
+                "name": new_record.name,
+                "uuid": data_dict["pipeline_schedule"]["id"],
+                "created_at": data_dict["pipeline_schedule"]["created_at"],
+                "updated_at": data_dict["pipeline_schedule"]["updated_at"],
+                "description": data_dict["pipeline_schedule"]["description"],
+                "settings": data_dict["pipeline_schedule"]["settings"],
+                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
+                "schedule_interval": data_dict["pipeline_schedule"][
+                    "schedule_interval"
+                ],
+                "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
+                "start_time": data_dict["pipeline_schedule"]["start_time"],
+                "status": data_dict["pipeline_schedule"]["status"],
+                "token": data_dict["pipeline_schedule"]["token"],
+                # "variables": data_dict["pipeline_schedule"]["variables"],
+            }
+        ]
         return JSONResponse(
             content={
                 "data": extracted_data,
-                "detail": detail,
-                "message": message,
+                "detail": "",
+                "message": "Tạo schedule thành công",
             },
             status_code=status.HTTP_200_OK,
         )
     else:
-        extracted_data = {}
+        extracted_data = []
         detail = data_dict["error"]["exception"]
-        message = "Tạo schedule thất bại"
+        db.delete(new_record)
+        db.commit()
         return JSONResponse(
             content={
                 "data": extracted_data,
                 "detail": detail,
-                "message": message,
+                "message": "Tạo schedule thất bại",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -982,89 +1006,126 @@ async def update_pipeline_schedules(
     db: Session,
     request: Request,
 ):
-    name = data.name
-    description = data.description
-    schedule_interval = data.schedule_interval
-    schedule_type = data.schedule_type
+
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    exist_schedule = (
+        db.query(PipelineSchedule)
+        .filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-"))
+        .first()
+    )
+    if not exist_schedule:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline schedule không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if exist_schedule.pipeline_id != exist_pipeline.id:
+        return JSONResponse(
+            content={
+                "data": [],
+                "message": "Bạn không có quyền truy cập pipeline schedule này",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
     settings = data.settings
-    start_time = data.start_time
-    my_status = data.status
-    tags = data.tags
     pipeline_schedule = {
         "pipeline_schedule": {
-            "name": name,
-            "description": description,
-            "schedule_interval": schedule_interval,
-            "schedule_type": schedule_type,
-            "settings": settings,
-            "start_time": start_time,
-            "status": my_status,
+            "settings": settings
             # "tags": [tags],
         }
     }
+
+    updated_schedule = {
+        "pipeline_schedule": {
+            "has_callback": True if data.has_callback else False,
+            "retry_config": data.retry_config if data.has_callback else [],
+        }
+    }
+    if data.schedule_type:
+        updated_schedule["pipeline_schedule"]["schedule_type"] = data.schedule_type
+    if data.description:
+        updated_schedule["pipeline_schedule"]["description"] = data.description
+    if data.schedule_interval:
+        updated_schedule["pipeline_schedule"][
+            "schedule_interval"
+        ] = data.schedule_interval
+    if data.start_time:
+        updated_schedule["pipeline_schedule"]["start_time"] = data.start_time
+    if data.status:
+        updated_schedule["pipeline_schedule"]["status"] = data.status
+    if data.name:
+        updated_schedule["pipeline_schedule"]["name"] = (
+            "schedule_"
+            + unidecode(data.name.replace(" ", "_"))
+            + "_"
+            + str(exist_schedule.id)
+        )
 
     url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.post(url, json=pipeline_schedule, headers=headers)
     data_dict = response.json()
     if "error" not in data_dict:
-        extracted_data = {
-            "pipeline_schedule": [
-                {
-                    "created_at": data_dict["pipeline_schedule"]["created_at"],
-                    "updated_at": data_dict["pipeline_schedule"]["updated_at"],
-                    "description": data_dict["pipeline_schedule"]["description"],
-                    "name": data_dict["pipeline_schedule"]["name"],
-                    "settings": data_dict["pipeline_schedule"]["settings"],
-                    # "tags": data_dict["pipeline_schedule"]["tags"],
-                    "id": data_dict["pipeline_schedule"]["id"],
-                    "last_enabled_at": data_dict["pipeline_schedule"][
-                        "last_enabled_at"
-                    ],
-                    "pipeline_uuid": data_dict["pipeline_schedule"]["pipeline_uuid"],
-                    "schedule_interval": data_dict["pipeline_schedule"][
-                        "schedule_interval"
-                    ],
-                    "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
-                    "start_time": data_dict["pipeline_schedule"]["start_time"],
-                    "status": data_dict["pipeline_schedule"]["status"],
-                    "token": data_dict["pipeline_schedule"]["token"],
-                    # "variables": data_dict["pipeline_schedule"]["variables"],
-                    "last_pipeline_run_status": data_dict["pipeline_schedule"][
-                        "last_pipeline_run_status"
-                    ],
-                    "next_pipeline_run_date": data_dict["pipeline_schedule"][
-                        "next_pipeline_run_date"
-                    ],
-                    "pipeline_in_progress_runs_count": data_dict["pipeline_schedule"][
-                        "pipeline_in_progress_runs_count"
-                    ],
-                    "pipeline_runs_count": data_dict["pipeline_schedule"][
-                        "pipeline_runs_count"
-                    ],
-                }
-            ],
-            "metadata": data_dict["metadata"],
-        }
-        message = "Sửa schedule thành công"
+        extracted_data = [
+            {
+                "name": exist_schedule.name,
+                "created_at": data_dict["pipeline_schedule"]["created_at"],
+                "updated_at": data_dict["pipeline_schedule"]["updated_at"],
+                "description": data_dict["pipeline_schedule"]["description"],
+                "settings": data_dict["pipeline_schedule"]["settings"],
+                # "tags": data_dict["pipeline_schedule"]["tags"],
+                "id": data_dict["pipeline_schedule"]["id"],
+                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
+                "schedule_interval": data_dict["pipeline_schedule"][
+                    "schedule_interval"
+                ],
+                "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
+                "start_time": data_dict["pipeline_schedule"]["start_time"],
+                "status": data_dict["pipeline_schedule"]["status"],
+                "token": data_dict["pipeline_schedule"]["token"],
+                # "variables": data_dict["pipeline_schedule"]["variables"],
+                "last_pipeline_run_status": data_dict["pipeline_schedule"][
+                    "last_pipeline_run_status"
+                ],
+                "next_pipeline_run_date": data_dict["pipeline_schedule"][
+                    "next_pipeline_run_date"
+                ],
+                "pipeline_in_progress_runs_count": data_dict["pipeline_schedule"][
+                    "pipeline_in_progress_runs_count"
+                ],
+                "pipeline_runs_count": data_dict["pipeline_schedule"][
+                    "pipeline_runs_count"
+                ],
+            }
+        ]
         return JSONResponse(
             content={
                 "data": extracted_data,
-                "detail": detail,
-                "message": message,
+                "detail": [],
+                "message": "Sửa schedule thành công",
             },
             status_code=status.HTTP_200_OK,
         )
     else:
-        extracted_data = {}
+        extracted_data = []
         detail = data_dict["error"]["exception"]
-        message = "Sửa schedule thất bại"
-
         return JSONResponse(
             content={
                 "data": extracted_data,
                 "detail": detail,
-                "message": message,
+                "message": "Sửa schedule thất bại",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -1077,55 +1138,79 @@ async def delete_one_pipeline_schedules(
     db: Session,
     request: Request,
 ):
+    exist_pipeline = (
+        db.query(Pipeline)
+        .filter(
+            (Pipeline.id == uuid.replace("_", "-"))
+            & (Pipeline.user_id == request.state.id)
+        )
+        .first()
+    )
+    if not exist_pipeline:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    exist_schedule = (
+        db.query(PipelineSchedule)
+        .filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-"))
+        .first()
+    )
+    if not exist_schedule:
+        return JSONResponse(
+            content={"data": [], "message": "Pipeline schedule không tồn tại"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    if exist_schedule.pipeline_id != exist_pipeline.id:
+        return JSONResponse(
+            content={
+                "data": [],
+                "message": "Bạn không có quyền truy cập pipeline schedule này",
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
     url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
     data_dict = response.json()
-    print(data_dict)
     if "error" not in data_dict:
-        extracted_data = {
-            "pipeline_schedule": [
-                {
-                    "created_at": data_dict["pipeline_schedule"]["created_at"],
-                    "updated_at": data_dict["pipeline_schedule"]["updated_at"],
-                    "description": data_dict["pipeline_schedule"]["description"],
-                    "name": data_dict["pipeline_schedule"]["name"],
-                    "settings": data_dict["pipeline_schedule"]["settings"],
-                    "id": data_dict["pipeline_schedule"]["id"],
-                    "last_enabled_at": data_dict["pipeline_schedule"][
-                        "last_enabled_at"
-                    ],
-                    "pipeline_uuid": data_dict["pipeline_schedule"]["pipeline_uuid"],
-                    "schedule_interval": data_dict["pipeline_schedule"][
-                        "schedule_interval"
-                    ],
-                    "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
-                    "start_time": data_dict["pipeline_schedule"]["start_time"],
-                    "status": data_dict["pipeline_schedule"]["status"],
-                    "token": data_dict["pipeline_schedule"]["token"],
-                    # "variables": data_dict["pipeline_schedule"]["variables"],
-                }
-            ],
-            "metadata": data_dict["metadata"],
-        }
-        message = "Xóa schedule thành công"
+        extracted_data = [
+            {
+                "name": exist_schedule.name,
+                "created_at": data_dict["pipeline_schedule"]["created_at"],
+                "updated_at": data_dict["pipeline_schedule"]["updated_at"],
+                "description": data_dict["pipeline_schedule"]["description"],
+                "settings": data_dict["pipeline_schedule"]["settings"],
+                "id": data_dict["pipeline_schedule"]["id"],
+                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
+                "schedule_interval": data_dict["pipeline_schedule"][
+                    "schedule_interval"
+                ],
+                "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
+                "start_time": data_dict["pipeline_schedule"]["start_time"],
+                "status": data_dict["pipeline_schedule"]["status"],
+                "token": data_dict["pipeline_schedule"]["token"],
+                # "variables": data_dict["pipeline_schedule"]["variables"],
+            }
+        ]
         return JSONResponse(
             content={
                 "data": extracted_data,
-                "detail": detail,
-                "message": message,
+                "detail": [],
+                "message": "Xóa schedule thành công",
             },
             status_code=status.HTTP_200_OK,
         )
     else:
-        extracted_data = {}
+        extracted_data = []
         detail = data_dict["error"]["exception"]
-        message = "Xóa schedule thất bại"
         return JSONResponse(
             content={
                 "data": extracted_data,
                 "detail": detail,
-                "message": message,
+                "message": "Xóa schedule thất bại",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )

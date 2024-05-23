@@ -34,6 +34,7 @@ class Block(Base):
 
 class PipelineSchedule(Base):
     __tablename__ = "pipeline_schedules"
-    user_id = db.Column(UUID(as_uuid=True), nullable=False)
-    pipeline_id = db.Column(UUID(as_uuid=True), nullable=False)
+    pipeline_id = db.Column(UUID(as_uuid=True), db.ForeignKey('pipelines.id'), nullable=False)
     pipeline_schedule_type = db.Column(db.String, nullable=False)
+    pipeline_schedule_interval = db.Column(db.String, nullable=False)
+    pipeline_schedule_start_time = db.Column(db.String, nullable=False)
