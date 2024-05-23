@@ -64,3 +64,6 @@ channelsrv:
 usersrv: 
 	cd services_go && go run cmd/users/main.go
 
+clientsrv: 
+	cd client && npm run dev
+
