@@ -49,7 +49,8 @@ async def verify_role(request: Request, required_roles: list[str]):
                 # Nếu lỗi khác, trả về lỗi 500
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Có lỗi xảy ra, vui lòng thử lại sau.",
+                    message="Có lỗi xảy ra, vui lòng thử lại sau.",
+                    detail="Xác thực thất bại.",
                 )
 
         # Lấy id và role từ response
