@@ -42,7 +42,7 @@ def get_block_content(block_type, source_type, source_config):
             template_path = "services_python/mage_service/template/datasource/upload_file/template.j2"
         else:
             return "Hello world"
-    elif block_type == "transfromer":
+    elif block_type == "transformer":
         if source_type == "difference":
             from services_python.mage_service.template.transform.difference.validator import (
                 validate_config,
@@ -82,6 +82,6 @@ def get_block_content(block_type, source_type, source_config):
         else:
             return "Hello world"
     return generate_jinja(
-    config=source_config,
-    template_path=template_path,
+        config=source_config,
+        template_path=template_path,
     )

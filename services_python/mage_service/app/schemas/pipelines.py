@@ -38,15 +38,15 @@ class BlockUpdate(BaseModel):
 class PipelineScheduleCreate(BaseModel):
     name: str
     id: str
-    schedule_type: Literal["api", "time"]
-    schedule_interval: Literal["@once", "@hourly"]
-    start_time: str
+    pipeline_schedule_type: Literal["api", "time"]
+    pipeline_schedule_interval: Literal["@once", "@hourly"]
+    pipeline_schedule_start_time: str
     description: Optional[str] = None
     settings: Optional[dict] = None
 
 
 class PipelineScheduleUpdate(BaseModel):
-    name: str
+    name: Optional[str] = None
     status: Literal["active", "inactive"]
     schedule_type: Optional[str] = None
     schedule_interval: Optional[str] = None
