@@ -17,9 +17,9 @@ MLFLOW_PORT = os.getenv("MLFLOW_PORT")
 AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_ACCESS_KEY")
 AWS_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
-os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
-os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
-os.environ["AWS_ENDPOINT_URL"] = AWS_ENDPOINT_URL
+# os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
+# os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
+# os.environ["AWS_ENDPOINT_URL"] = AWS_ENDPOINT_URL
 
 # Set default limit for records
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
@@ -197,9 +197,16 @@ async def config_project(
     save_to_s3(
         user_id=user_id,
         file_name=f"flow-storage/{exist_project.id}.py",
-        content=FLOW.replace("{{ MLFLOW_HOST }}", MLFLOW_HOST)
-        .replace("{{ MLFLOW_PORT }}", MLFLOW_PORT)
-        .replace("{{ flow }}", data.flow)
+        # content=FLOW.replace("{{ MLFLOW_HOST }}", MLFLOW_HOST)
+        # .replace("{{ MLFLOW_PORT }}", MLFLOW_PORT)
+        # .replace("{{ flow }}", data.flow)
+        # .replace("{{ name }}", f"{exist_project.id}")
+        # .replace("{{ task }}", data.config["task"])
+        # .replace("{{ dataset }}", data.config["dataset"])
+        # .replace("{{ lib }}", data.config["lib"])
+        # .replace("{{ model }}", data.config["model"])
+        # .replace("{{ metric }}", data.config["metric"]),
+        content=FLOW.replace("{{ flow }}", data.flow)
         .replace("{{ name }}", f"{exist_project.id}")
         .replace("{{ task }}", data.config["task"])
         .replace("{{ dataset }}", data.config["dataset"])
@@ -232,6 +239,10 @@ async def config_project(
                 }
             ],
             "schedules": [],
+            "parameters": {
+                "MLFLOW_HOST": MLFLOW_HOST,
+                "MLFLOW_PORT": MLFLOW_PORT,
+            },
         },
     )
     if 400 <= response.status_code < 500:

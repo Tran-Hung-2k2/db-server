@@ -53,14 +53,22 @@ async def create_run(
         )
     if not data.name:
         data.name = name_generator()
-    data.config["name"] = data.name
+
+    new_run = Run(**data.dict())
+    db.add(new_run)
+    db.flush()
+
+    request_payload = data.config
+    request_payload["name"] = str(new_run.id)
+    request_payload["parameters"] = {"run_name": str(new_run.id)}
     # Create flow run from deployment
     response = requests.post(
         url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/deployments/{deployment_id}/create_flow_run",
         headers=headers,
-        json=data.config,
+        json=request_payload,
     )
     if 400 <= response.status_code < 500:
+        db.rollback()
         return JSONResponse(
             status_code=response.status_code,
             content=make_response(
@@ -69,8 +77,6 @@ async def create_run(
         )
     else:
         data.flow_run_id = response.json()["id"]
-        new_run = Run(**data.dict())
-        db.add(new_run)
         db.commit()
         return JSONResponse(
             status_code=status.HTTP_200_OK,
