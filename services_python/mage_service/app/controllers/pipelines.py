@@ -474,7 +474,6 @@ async def get_one_block(
         status_code=status.HTTP_200_OK,
     )
 
-
 from services_python.mage_service.template.get_block_content import get_block_content
 
 
@@ -840,7 +839,7 @@ async def get_all_pipeline_schedules(
     db: Session,
     request: Request,
 ):
-
+    
     query_params = dict(request.query_params)
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
@@ -867,30 +866,30 @@ async def get_all_pipeline_schedules(
     data_dict = response.json()
     extracted_data = [
         {
-            "created_at": schedule["created_at"],
-            "updated_at": schedule["updated_at"],
-            "description": schedule["description"],
-            "name": db.query(PipelineSchedule)
-            .filter((PipelineSchedule.id == schedule.get("id").replace("_", "-")))
-            .first()
-            .name,
-            "settings": schedule["settings"],
-            "id": schedule["id"],
-            "last_enabled_at": schedule["last_enabled_at"],
-            "schedule_interval": schedule["schedule_interval"],
-            "schedule_type": schedule["schedule_type"],
-            "start_time": schedule["start_time"],
-            "status": schedule["status"],
-            "token": schedule["token"],
-            # "variables": schedule["variables"],
-            "last_pipeline_run_status": schedule["last_pipeline_run_status"],
-            "next_pipeline_run_date": schedule["next_pipeline_run_date"],
-            "pipeline_in_progress_runs_count": schedule[
-                "pipeline_in_progress_runs_count"
-            ],
-            "pipeline_runs_count": schedule["pipeline_runs_count"],
-        }
-        for schedule in data_dict["pipeline_schedules"]
+                "created_at": schedule["created_at"],
+                "updated_at": schedule["updated_at"],
+                "description": schedule["description"],
+                "name": db.query(PipelineSchedule)
+                .filter((PipelineSchedule.id == schedule.get("id").replace("_", "-")))
+                .first()
+                .name,
+                "settings": schedule["settings"],
+                "id": schedule["id"],
+                "last_enabled_at": schedule["last_enabled_at"],
+                "schedule_interval": schedule["schedule_interval"],
+                "schedule_type": schedule["schedule_type"],
+                "start_time": schedule["start_time"],
+                "status": schedule["status"],
+                "token": schedule["token"],
+                # "variables": schedule["variables"],
+                "last_pipeline_run_status": schedule["last_pipeline_run_status"],
+                "next_pipeline_run_date": schedule["next_pipeline_run_date"],
+                "pipeline_in_progress_runs_count": schedule[
+                    "pipeline_in_progress_runs_count"
+                ],
+                "pipeline_runs_count": schedule["pipeline_runs_count"],
+            }
+            for schedule in data_dict["pipeline_schedules"]
     ]
     return JSONResponse(
         content={
@@ -925,10 +924,7 @@ async def create_pipeline_schedules(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     new_record = PipelineSchedule(
-        name=data.name,
-        pipeline_schedule_type=data.pipeline_schedule_type,
-        pipeline_schedule_interval=data.pipeline_schedule_interval,
-        pipeline_schedule_start_time=data.pipeline_schedule_start_time,
+        name=data.name, pipeline_schedule_type=data.pipeline_schedule_type, pipeline_schedule_interval=data.pipeline_schedule_interval, pipeline_schedule_start_time=data.pipeline_schedule_start_time
     )
     db.add(new_record)
     db.commit()
@@ -936,10 +932,10 @@ async def create_pipeline_schedules(
     settings = data.settings
     description = data.description
 
+
     pipeline_schedule = {
         "pipeline_schedule": {
-            "name": "schedule_"
-            + unidecode(new_record.name.replace(" ", "_"))
+            "name": "schedule_"+ unidecode(new_record.name.replace(" ", "_"))
             + "_"
             + str(new_record.id),
             "id": str(new_record.id),
@@ -964,7 +960,9 @@ async def create_pipeline_schedules(
                 "updated_at": data_dict["pipeline_schedule"]["updated_at"],
                 "description": data_dict["pipeline_schedule"]["description"],
                 "settings": data_dict["pipeline_schedule"]["settings"],
-                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
+                "last_enabled_at": data_dict["pipeline_schedule"][
+                    "last_enabled_at"
+                ],
                 "schedule_interval": data_dict["pipeline_schedule"][
                     "schedule_interval"
                 ],
@@ -974,7 +972,7 @@ async def create_pipeline_schedules(
                 "token": data_dict["pipeline_schedule"]["token"],
                 # "variables": data_dict["pipeline_schedule"]["variables"],
             }
-        ]
+            ]
         return JSONResponse(
             content={
                 "data": extracted_data,
@@ -1022,9 +1020,7 @@ async def update_pipeline_schedules(
         )
 
     exist_schedule = (
-        db.query(PipelineSchedule)
-        .filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-"))
-        .first()
+        db.query(PipelineSchedule).filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-")).first()
     )
     if not exist_schedule:
         return JSONResponse(
@@ -1033,10 +1029,7 @@ async def update_pipeline_schedules(
         )
     if exist_schedule.pipeline_id != exist_pipeline.id:
         return JSONResponse(
-            content={
-                "data": [],
-                "message": "Bạn không có quyền truy cập pipeline schedule này",
-            },
+            content={"data": [], "message": "Bạn không có quyền truy cập pipeline schedule này"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     settings = data.settings
@@ -1058,17 +1051,14 @@ async def update_pipeline_schedules(
     if data.description:
         updated_schedule["pipeline_schedule"]["description"] = data.description
     if data.schedule_interval:
-        updated_schedule["pipeline_schedule"][
-            "schedule_interval"
-        ] = data.schedule_interval
+        updated_schedule["pipeline_schedule"]["schedule_interval"] = data.schedule_interval
     if data.start_time:
         updated_schedule["pipeline_schedule"]["start_time"] = data.start_time
     if data.status:
         updated_schedule["pipeline_schedule"]["status"] = data.status
     if data.name:
         updated_schedule["pipeline_schedule"]["name"] = (
-            "schedule_"
-            + unidecode(data.name.replace(" ", "_"))
+            "schedule_"+ unidecode(data.name.replace(" ", "_"))
             + "_"
             + str(exist_schedule.id)
         )
@@ -1079,37 +1069,39 @@ async def update_pipeline_schedules(
     data_dict = response.json()
     if "error" not in data_dict:
         extracted_data = [
-            {
-                "name": exist_schedule.name,
-                "created_at": data_dict["pipeline_schedule"]["created_at"],
-                "updated_at": data_dict["pipeline_schedule"]["updated_at"],
-                "description": data_dict["pipeline_schedule"]["description"],
-                "settings": data_dict["pipeline_schedule"]["settings"],
-                # "tags": data_dict["pipeline_schedule"]["tags"],
-                "id": data_dict["pipeline_schedule"]["id"],
-                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
-                "schedule_interval": data_dict["pipeline_schedule"][
-                    "schedule_interval"
-                ],
-                "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
-                "start_time": data_dict["pipeline_schedule"]["start_time"],
-                "status": data_dict["pipeline_schedule"]["status"],
-                "token": data_dict["pipeline_schedule"]["token"],
-                # "variables": data_dict["pipeline_schedule"]["variables"],
-                "last_pipeline_run_status": data_dict["pipeline_schedule"][
-                    "last_pipeline_run_status"
-                ],
-                "next_pipeline_run_date": data_dict["pipeline_schedule"][
-                    "next_pipeline_run_date"
-                ],
-                "pipeline_in_progress_runs_count": data_dict["pipeline_schedule"][
-                    "pipeline_in_progress_runs_count"
-                ],
-                "pipeline_runs_count": data_dict["pipeline_schedule"][
-                    "pipeline_runs_count"
-                ],
-            }
-        ]
+                {
+                    "name": exist_schedule.name,
+                    "created_at": data_dict["pipeline_schedule"]["created_at"],
+                    "updated_at": data_dict["pipeline_schedule"]["updated_at"],
+                    "description": data_dict["pipeline_schedule"]["description"],
+                    "settings": data_dict["pipeline_schedule"]["settings"],
+                    # "tags": data_dict["pipeline_schedule"]["tags"],
+                    "id": data_dict["pipeline_schedule"]["id"],
+                    "last_enabled_at": data_dict["pipeline_schedule"][
+                        "last_enabled_at"
+                    ],
+                    "schedule_interval": data_dict["pipeline_schedule"][
+                        "schedule_interval"
+                    ],
+                    "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
+                    "start_time": data_dict["pipeline_schedule"]["start_time"],
+                    "status": data_dict["pipeline_schedule"]["status"],
+                    "token": data_dict["pipeline_schedule"]["token"],
+                    # "variables": data_dict["pipeline_schedule"]["variables"],
+                    "last_pipeline_run_status": data_dict["pipeline_schedule"][
+                        "last_pipeline_run_status"
+                    ],
+                    "next_pipeline_run_date": data_dict["pipeline_schedule"][
+                        "next_pipeline_run_date"
+                    ],
+                    "pipeline_in_progress_runs_count": data_dict["pipeline_schedule"][
+                        "pipeline_in_progress_runs_count"
+                    ],
+                    "pipeline_runs_count": data_dict["pipeline_schedule"][
+                        "pipeline_runs_count"
+                    ],
+                }
+            ]
         return JSONResponse(
             content={
                 "data": extracted_data,
@@ -1125,7 +1117,7 @@ async def update_pipeline_schedules(
             content={
                 "data": extracted_data,
                 "detail": detail,
-                "message": "Sửa schedule thất bại",
+                "message": "Sửa schedule thất bại"
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -1153,9 +1145,7 @@ async def delete_one_pipeline_schedules(
         )
 
     exist_schedule = (
-        db.query(PipelineSchedule)
-        .filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-"))
-        .first()
+        db.query(PipelineSchedule).filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-")).first()
     )
     if not exist_schedule:
         return JSONResponse(
@@ -1164,13 +1154,10 @@ async def delete_one_pipeline_schedules(
         )
     if exist_schedule.pipeline_id != exist_pipeline.id:
         return JSONResponse(
-            content={
-                "data": [],
-                "message": "Bạn không có quyền truy cập pipeline schedule này",
-            },
+            content={"data": [], "message": "Bạn không có quyền truy cập pipeline schedule này"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-
+    
     url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
@@ -1184,7 +1171,9 @@ async def delete_one_pipeline_schedules(
                 "description": data_dict["pipeline_schedule"]["description"],
                 "settings": data_dict["pipeline_schedule"]["settings"],
                 "id": data_dict["pipeline_schedule"]["id"],
-                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
+                "last_enabled_at": data_dict["pipeline_schedule"][
+                    "last_enabled_at"
+                ],
                 "schedule_interval": data_dict["pipeline_schedule"][
                     "schedule_interval"
                 ],
@@ -1194,7 +1183,7 @@ async def delete_one_pipeline_schedules(
                 "token": data_dict["pipeline_schedule"]["token"],
                 # "variables": data_dict["pipeline_schedule"]["variables"],
             }
-        ]
+            ]
         return JSONResponse(
             content={
                 "data": extracted_data,
