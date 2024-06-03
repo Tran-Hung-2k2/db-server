@@ -12,7 +12,7 @@ MINIO_REGION = os.getenv("MINIO_REGION", "us-east-1")
 MINIO_S3_ALLOW_UNSAFE_RENAME = os.getenv("MINIO_S3_ALLOW_UNSAFE_RENAME", "true")
 
 
-def save_to_s3(user_id, file_name, content):
+def save_to_s3(bucket, entry, content):
 
     # Set up MinIO client
     s3 = boto3.resource(
@@ -23,10 +23,10 @@ def save_to_s3(user_id, file_name, content):
         # config=Config(signature_version="s3v4"),
     )
     # Create the bucket if it doesn't exist
-    if not s3.Bucket(user_id) in s3.buckets.all():
-        s3.create_bucket(Bucket=user_id)
+    if not s3.Bucket(bucket) in s3.buckets.all():
+        s3.create_bucket(Bucket=bucket)
 
     # Write the file to MinIO
-    s3.Bucket(user_id).put_object(Key=file_name, Body=content)
+    s3.Bucket(bucket).put_object(Key=entry, Body=content)
 
     return
