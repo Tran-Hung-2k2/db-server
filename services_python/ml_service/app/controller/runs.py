@@ -22,9 +22,6 @@ MLFLOW_PORT = os.getenv("MLFLOW_PORT")
 AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_ACCESS_KEY")
 AWS_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
-# os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
-# os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
-# os.environ["AWS_ENDPOINT_URL"] = AWS_ENDPOINT_URL
 
 # Set default limit for records
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
@@ -57,15 +54,17 @@ async def create_run(
     new_run = Run(**data.dict())
     db.add(new_run)
     db.flush()
+    db.refresh(new_run)
 
-    request_payload = data.config
-    request_payload["name"] = str(new_run.id)
-    request_payload["parameters"] = {"run_name": str(new_run.id)}
     # Create flow run from deployment
     response = requests.post(
         url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/deployments/{deployment_id}/create_flow_run",
         headers=headers,
-        json=request_payload,
+        json={
+            "state": {"type": "SCHEDULED"},
+            "name": str(new_run.id),
+            "parameters": {"run_name": str(new_run.id)},
+        },
     )
     if 400 <= response.status_code < 500:
         db.rollback()
@@ -76,7 +75,7 @@ async def create_run(
             ),
         )
     else:
-        data.flow_run_id = response.json()["id"]
+        new_run.flow_run_id = response.json()["id"]
         db.commit()
         return JSONResponse(
             status_code=status.HTTP_200_OK,
