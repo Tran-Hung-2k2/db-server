@@ -17,10 +17,11 @@ MLFLOW_PORT = os.getenv("MLFLOW_PORT")
 AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_ACCESS_KEY")
 AWS_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
-# os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
-# os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
-# os.environ["AWS_ENDPOINT_URL"] = AWS_ENDPOINT_URL
-
+DB_HOST = os.getenv("POSTGRES_HOST")
+DB_PORT = os.getenv("POSTGRES_PORT")
+DB_USER = os.getenv("POSTGRES_USER")
+DB_PASS = os.getenv("POSTGRES_PASS")
+DB_NAME = os.getenv("POSTGRES_NAME")
 # Set default limit for records
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
@@ -194,18 +195,10 @@ async def config_project(
             status_code=status.HTTP_400_BAD_REQUEST,
             content=make_response("Cấu hình dự án không hợp lệ"),
         )
+    entry = f"{exist_project.id}.py"
     save_to_s3(
-        user_id=user_id,
-        file_name=f"flow-storage/{exist_project.id}.py",
-        # content=FLOW.replace("{{ MLFLOW_HOST }}", MLFLOW_HOST)
-        # .replace("{{ MLFLOW_PORT }}", MLFLOW_PORT)
-        # .replace("{{ flow }}", data.flow)
-        # .replace("{{ name }}", f"{exist_project.id}")
-        # .replace("{{ task }}", data.config["task"])
-        # .replace("{{ dataset }}", data.config["dataset"])
-        # .replace("{{ lib }}", data.config["lib"])
-        # .replace("{{ model }}", data.config["model"])
-        # .replace("{{ metric }}", data.config["metric"]),
+        bucket="mlops",
+        entry=entry,
         content=FLOW.replace("{{ flow }}", data.flow)
         .replace("{{ name }}", f"{exist_project.id}")
         .replace("{{ task }}", data.config["task"])
@@ -221,32 +214,35 @@ async def config_project(
         json={
             "name": f"{exist_project.id}",
             "flow_id": flow_id,
-            "entrypoint": f"flow-storage/{exist_project.id}.py:{data.flow}",
+            "entrypoint": f"{entry}:{data.flow}",
             "work_pool_name": "Process",
             "job_variables": {
                 "env": {
                     "AWS_ACCESS_KEY_ID": AWS_ACCESS_KEY_ID,
                     "AWS_SECRET_ACCESS_KEY": AWS_SECRET_ACCESS_KEY,
                     "AWS_ENDPOINT_URL": AWS_ENDPOINT_URL,
+                    "MLFLOW_HOST": MLFLOW_HOST,
+                    "MLFLOW_PORT": MLFLOW_PORT,
+                    "DB_HOST": DB_HOST,
+                    "DB_PORT": DB_PORT,
+                    "DB_USER": DB_USER,
+                    "DB_PASS": DB_PASS,
+                    "DB_NAME": DB_NAME,
                 }
             },
             "pull_steps": [
                 {
                     "prefect.deployments.steps.pull_from_remote_storage": {
-                        "url": f"s3://{user_id}/",
+                        "url": f"s3://mlops/",
                         "requires": "s3fs",
                     }
                 }
             ],
             "schedules": [],
-            "parameters": {
-                "MLFLOW_HOST": MLFLOW_HOST,
-                "MLFLOW_PORT": MLFLOW_PORT,
-            },
         },
     )
     if 400 <= response.status_code < 500:
-        raise JSONResponse(
+        return JSONResponse(
             status_code=response.status_code,
             content=make_response(message="Cấu hình dự án thất bại"),
         )
