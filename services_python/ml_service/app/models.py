@@ -74,6 +74,7 @@ class Run(Base):
     run_id = Column(
         String,
         nullable=True,
+        unique=True,
     )
 
     config = Column(JSON)
