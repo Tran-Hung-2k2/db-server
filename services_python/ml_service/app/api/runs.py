@@ -21,3 +21,16 @@ async def create_run(
         data=data,
         db=db,
     )
+
+
+@router.get("/", summary="Get list of runs from project")
+async def search_run(
+    project_id: str,
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    return await ctl.search_run(
+        project_id=project_id,
+        request=request,
+        db=db,
+    )
