@@ -1,5 +1,6 @@
 import os
 import requests
+import pandas as pd
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -81,5 +82,63 @@ async def create_run(
             status_code=status.HTTP_200_OK,
             content=make_response(
                 message="Khởi chạy dự án thành công",
+                data=response.json(),
+            ),
+        )
+
+
+@handle_database_errors
+async def search_run(
+    db: Session,
+    project_id: str,
+    request: Request,
+):
+
+    query_params = dict(request.query_params)
+    # Set skip and limit for pagination
+    skip = int(query_params.get("skip", 0))
+    limit = int(query_params.get("limit", LIMIT_RECORD))
+    query = db.query(Run).filter(Run.project_id == project_id)
+    total = query.count()
+    records = query.offset(skip).limit(limit).all()
+    df = pd.DataFrame([record.to_dict() for record in records])
+
+    response = requests.post(
+        url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/flow_runs/filter/",
+        headers=headers,
+        json={
+            "flow_runs": {
+                "id": {
+                    "any_": df["flow_run_id"].tolist(),
+                }
+            },
+        },
+    )
+    if 200 <= response.status_code < 300:
+        response_df = pd.DataFrame(
+            response.json(),
+            columns=[
+                "name",
+                "start_time",
+                "end_time",
+                "next_scheduled_start_time",
+                "total_run_time",
+            ],
+        )
+        df = df.merge(response_df, left_on="id", right_on="name", suffixes=("", "_dev"))
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=make_response(
+                message="Lấy danh sách thành công",
+                data=df.to_dict(orient="records"),
+                other={"total": total, "skip": skip, "limit": limit},
+            ),
+        )
+    else:
+        return JSONResponse(
+            status_code=400,
+            content=make_response(
+                message="Lấy danh sách thất bại", detail=response.json()
             ),
         )
