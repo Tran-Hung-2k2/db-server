@@ -8,3 +8,8 @@ class RunCreate(BaseModel):
     flow_run_id: Optional[UUID4] = None
     run_id: Optional[str] = None
     other: Optional[dict] = None
+
+
+class RunUpdate(BaseModel):
+    name: str
+    other: Optional[dict] = None

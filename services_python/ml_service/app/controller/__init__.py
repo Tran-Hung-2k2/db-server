@@ -9,6 +9,7 @@ from .projects import (
 from .runs import (
     create_run,
     search_run,
-    # delete_run,
-    # update_run,
+    get_run,
+    delete_run,
+    update_run,
 )

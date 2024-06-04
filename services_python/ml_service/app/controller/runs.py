@@ -82,7 +82,6 @@ async def create_run(
             status_code=status.HTTP_200_OK,
             content=make_response(
                 message="Khởi chạy dự án thành công",
-                data=response.json(),
             ),
         )
 
@@ -121,6 +120,7 @@ async def search_run(
                 "name",
                 "start_time",
                 "end_time",
+                "state_type",
                 "next_scheduled_start_time",
                 "total_run_time",
             ],
@@ -142,3 +142,117 @@ async def search_run(
                 message="Lấy danh sách thất bại", detail=response.json()
             ),
         )
+
+
+@handle_database_errors
+async def get_run(
+    db: Session,
+    project_id: str,
+    run_id: str,
+    request: Request,
+):
+
+    exist_run = (
+        db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
+    )
+    if not exist_run:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy project_run"),
+        )
+
+    response = requests.get(
+        url=f"http://{MLFLOW_HOST}:{MLFLOW_PORT}/api/2.0/mlflow/runs/get",
+        headers=headers,
+        json={"run_id": exist_run.to_dict()["run_id"]},
+    )
+
+    if 200 <= response.status_code < 300:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=make_response(
+                message="Lấy project_run thành công",
+                data=response.json()["run"],
+            ),
+        )
+    else:
+        return JSONResponse(
+            status_code=response.status_code,
+            content=make_response(
+                message="Lấy project_run thất bại",
+                detail=response.json(),
+            ),
+        )
+
+
+@handle_database_errors
+async def delete_run(
+    db: Session,
+    project_id: str,
+    run_id: str,
+    request: Request,
+):
+    # user_id = "00000000-0000-0000-0000-000000000000"
+    exist_run = (
+        db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
+    )
+    if not exist_run:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy dự án"),
+        )
+
+    response = requests.post(
+        url=f"http://{MLFLOW_HOST}:{MLFLOW_PORT}/api/2.0/mlflow/runs/delete",
+        headers=headers,
+        json={"run_id": exist_run.to_dict()["run_id"]},
+    )
+
+    if 200 <= response.status_code < 300:
+        # Delete project
+        db.delete(exist_run)
+        db.commit()
+        return JSONResponse(
+            status_code=response.status_code,
+            content=make_response(message="Xóa dự án thành công"),
+        )
+    else:
+        return JSONResponse(
+            status_code=response.status_code,
+            content=make_response(
+                message="Xóa dự án thất bại",
+                detail=response.json(),
+            ),
+        )
+
+
+@handle_database_errors
+async def update_run(
+    db: Session,
+    project_id: str,
+    run_id: str,
+    request: Request,
+    data: schemas.RunUpdate,
+):
+    exist_run = (
+        db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
+    )
+    if not exist_run:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy project_run"),
+        )
+    # Update project data
+    for key, value in data.dict().items():
+        setattr(exist_run, key, value)
+
+    # Save changes to the database
+    db.commit()
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "message": "Cập nhật project_run thành công",
+            "data": exist_run.to_dict(),
+        },
+    )

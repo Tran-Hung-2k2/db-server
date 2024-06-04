@@ -77,6 +77,4 @@ class Run(Base):
         unique=True,
     )
 
-    config = Column(JSON)
-
     other = Column(JSON)
