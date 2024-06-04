@@ -32,7 +32,7 @@ df = (
     .selectExpr("CAST(value AS STRING)")
     .select(from_json("value", schema).alias("data"))
     .select("data.*")
-.filter(
+    .filter(
         (col("TRACKER_SPEED") > 15) & 
         (col("DEVICE_ID").isin([device1, device2]))
 )
