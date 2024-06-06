@@ -6,6 +6,7 @@ import { LuWorkflow } from 'react-icons/lu';
 import { MdOutlineDataExploration } from 'react-icons/md';
 import { TbClipboardData } from 'react-icons/tb';
 import { MdOutlineWbCloudy } from 'react-icons/md';
+import { SiJupyter } from 'react-icons/si';
 
 import label from './label';
 
@@ -75,6 +76,19 @@ const menuItem = [
         ],
         icon: <LuWorkflow size={23} />,
         bigIcon: <LuWorkflow size={30} />,
+    },
+    {
+        title: 'Notebooks',
+        role: [label.role.ADMIN, label.role.USER],
+        child: [
+            {
+                path: '/notebooks/manage',
+                title: 'Quản lý notebooks',
+                role: [label.role.USER],
+            },
+        ],
+        icon: <SiJupyter size={23} />,
+        bigIcon: <SiJupyter size={30} />,
     },
     { label: 'MLOps' },
     {

@@ -6,14 +6,13 @@ import api from '@/api/datasets';
 export default function Component({ reload, setReload }) {
     const handleSubmit = async (e, data) => {
         e.preventDefault();
-        const { name, description } = data;
 
-        const newData = {
-            name,
-            description,
-        };
+        const formData = new FormData();
+        for (const key in data) {
+            formData.append(key, data[key]);
+        }
 
-        await api.createDataset(newData);
+        await api.createDataset(formData);
         setReload(!reload);
         document.getElementById('dataset_create').close();
     };

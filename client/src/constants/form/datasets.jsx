@@ -12,6 +12,13 @@ const fields = [
         type: 'textarea',
         placeholder: 'Mô tả tập dữ liệu',
     },
+    {
+        label: 'Tập dữ liệu (.csv hoặc .zip)',
+        name: 'file',
+        type: 'file',
+        accept: '.csv, .zip',
+        required: true,
+    },
 ];
 
 export default fields;

@@ -16,5 +16,6 @@ def add_cors_middleware(app):
             "Access-Control-Allow-Headers",
             "Authorization",
             "Set-Cookie",
+            "Filename",
         ],
     )

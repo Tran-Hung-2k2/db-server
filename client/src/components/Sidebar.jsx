@@ -6,6 +6,7 @@ import { HiArrowNarrowLeft } from 'react-icons/hi';
 
 import sidebarAvatar from '@assets/images/sidebar.svg';
 import favicon from '@assets/images/favicon.svg';
+import viettelText from '@assets/images/viettel.png';
 import menuItem from '@constants/sidebar';
 
 export default function Component({ className, open, setOpen }) {
@@ -44,8 +45,9 @@ export default function Component({ className, open, setOpen }) {
 
                         {/* hamburger icon */}
                         <div className="flex items-center gap-5 fill-current swap-off">
-                            <img src={favicon} alt="Viettel High Tech" />
-                            {hover && <div className="text-2xl font-bold text-primary">Viettel</div>}
+                            <img className="inline-block h-10" src={favicon} alt="Viettel High Tech" />
+
+                                {hover && <img className="inline-block object-cover w-32 h-10 -translate-x-3" src={viettelText} alt="" />}
                         </div>
 
                         {/* close icon */}

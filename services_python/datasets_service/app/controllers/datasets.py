@@ -9,9 +9,11 @@ import services_python.datasets_service.app.schemas.datasets as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
+import uuid
 from services_python.utils.delta import (
     save_file_to_s3_as_delta,
     query_sql_from_delta_table,
+    delete_folder_from_s3,
 )
 
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
@@ -113,34 +115,23 @@ async def query_table_datasets(db: Session, request: Request):
 
 
 @handle_database_errors
-async def create_dataset(db: Session, data: schemas.DatasetCreate, request: Request):
-    data.user_id = request.state.id
-    new_record = Dataset(**data.dict())
-    db.add(new_record)
-    db.commit()
-    db.refresh(new_record)
-
-    return JSONResponse(
-        content={
-            "message": "Tạo tập dữ liệu thành công.",
-            "detail": "",
-            "data": new_record.to_dict(),
-        },
-        status_code=status.HTTP_201_CREATED,
-    )
-
-
-@handle_database_errors
-async def create_dataset_upload_file(
-    db: Session, file_data: UploadFile, data: schemas.DatasetCreate, request: Request
+async def create_dataset(
+    db: Session, filepath: str, data: schemas.DatasetCreate, request: Request
 ):
-    data.user_id = request.state.id
-    new_record = Dataset(**data.dict())
-    db.add(new_record)
-    db.commit()
-    db.refresh(new_record)
-
-    save_file_to_s3_as_delta(file_data, request.state.id, new_record.id)
+    try:
+        data.user_id = uuid.UUID(request.state.id)
+        new_record = Dataset(**data.dict())
+        db.add(new_record)
+        db.flush()
+        db.refresh(new_record)
+        save_file_to_s3_as_delta(filepath, request.state.id, new_record.id)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        # Xóa file
+        os.remove(filepath)
 
     return JSONResponse(
         content={
@@ -207,9 +198,15 @@ async def delete_dataset(db: Session, id: int, request: Request):
             detail="Bạn không có quyền truy cập vào tài nguyên này.",
         )
 
-    # Xóa dataset
-    db.delete(exist_dataset)
-    db.commit()
+    try:
+        # Xóa dataset
+        db.delete(exist_dataset)
+        db.flush()
+        delete_folder_from_s3(request.state.id, id)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise e
 
     return JSONResponse(
         content={"message": "Xóa tập dữ liệu thành công."},

@@ -1,7 +1,8 @@
 import os
 import json
 import duckdb
-import psycopg2
+from minio.error import S3Error
+import polars as pl
 import pandas as pd
 from minio import Minio
 from urllib.parse import urlsplit
@@ -30,22 +31,36 @@ storage_options = {
 
 
 def create_s3_bucket(bucket_name):
-    endpoint_url_parts = urlsplit(MINIO_ENDPOINT_URL)
-    # Initialize Minio client
-    minio_client = Minio(
-        endpoint_url_parts.netloc,
-        access_key=MINIO_ACCESS_KEY_ID,
-        secret_key=MINIO_SECRET_ACCESS_KEY,
-        secure=False,  # Set to True if your Minio server uses HTTPS
-    )
+    try:
+        endpoint_url_parts = urlsplit(MINIO_ENDPOINT_URL)
+        # Initialize Minio client
+        minio_client = Minio(
+            endpoint_url_parts.netloc,
+            access_key=MINIO_ACCESS_KEY_ID,
+            secret_key=MINIO_SECRET_ACCESS_KEY,
+            secure=False,  # Set to True if your Minio server uses HTTPS
+        )
 
-    # Check if the bucket already exists
-    if not minio_client.bucket_exists(bucket_name):
-        # Create the bucket
-        minio_client.make_bucket(bucket_name)
-        print(f"Bucket '{bucket_name}' created successfully.")
-    else:
-        print(f"Bucket '{bucket_name}' already exists.")
+        # Check if the bucket already exists
+        if not minio_client.bucket_exists(bucket_name):
+            # Create the bucket
+            minio_client.make_bucket(bucket_name)
+            print(f"Bucket '{bucket_name}' created successfully.")
+        else:
+            print(f"Bucket '{bucket_name}' already exists.")
+
+    except S3Error as e:
+        # Handle Minio-specific errors
+        print(f"Minio S3Error: {e}")
+        raise e
+    except ConnectionRefusedError as e:
+        # Handle connection errors
+        print(f"Connection Error: {e}")
+        raise e
+    except Exception as e:
+        # Handle any other exceptions
+        print(f"An error occurred: {e}")
+        raise e
 
 
 def save_data_to_s3_as_delta(user_id, dataset_id, df: pd.DataFrame):
@@ -65,28 +80,50 @@ def save_data_to_s3_as_delta(user_id, dataset_id, df: pd.DataFrame):
     return
 
 
-def save_file_to_s3_as_delta(file_data: UploadFile, user_id: str, dataset_id: int):
-    if file_data:
-        file_extension = file_data.filename.rsplit(".", 1)[1].lower()
-        if file_extension == "csv":
-            df = pd.read_csv(file_data.file)
-            print(df)
-        elif file_extension in {"xlsx", "xls"}:
-            df = pd.read_excel(file_data.file)
-        else:
-            raise MyException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Định dạng file không được hỗ trợ.",
-            )
+def save_file_to_s3_as_delta(filepath: str, user_id: str, dataset_id: int):
+    try:
+        if filepath:
+            file_extension = filepath.rsplit(".", 1)[1].lower()
+            if file_extension == "csv":
+                # Đọc dữ liệu từ file CSV bằng Polars
+                df = pl.read_csv(
+                    filepath,
+                    null_values=["NULL"],
+                    infer_schema_length=10000,
+                    ignore_errors=True,
+                )
+            else:
+                raise MyException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Định dạng file không được hỗ trợ.",
+                )
 
-        save_data_to_s3_as_delta(user_id, dataset_id, df)
+            try:
+                save_data_to_s3_as_delta(user_id, dataset_id, df.to_pandas())
+            except Exception as e:
+                raise MyException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"{e}",
+                )
 
-        return
+            return
 
-    raise MyException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Có lỗi xảy ra, vui lòng thử lại sau.",
-    )
+        raise MyException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không tìm thấy file.",
+        )
+
+    except MyException as e:
+        # Handle MyException specifically
+        print(f"MyException: {e.detail}")
+        raise e
+    except Exception as e:
+        # Handle any other exceptions
+        print(f"An unexpected error occurred: {e}")
+        raise MyException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {e}",
+        )
 
 
 def query_sql_from_delta_table(
@@ -106,7 +143,7 @@ def query_sql_from_delta_table(
         table_uri=delta_table_path,
         storage_options=storage_options,
         # version=version,
-    ).to_pyarrow_dataset()
+    ).to_pyarrow_table()
     con.register(dataset_name, dt)
     # Count the total number of records without skip and limit
     total_records = con.execute(f"SELECT COUNT(*) FROM ({sql_cmd})").fetchone()[0]
@@ -127,16 +164,12 @@ def query_sql_from_delta_table(
 
 
 def read_delta_from_s3_as_pandas(
-    user_id,
-    dataset_id,
-    input: list = [],
-    op: list = [],
-    output: list = []
+    user_id, dataset_id, input: list = [], op: list = [], output: list = []
 ):
     valid_ops = ["=", "!=", "==", "in", "not in", "<", ">", "<=", ">="]
     if len(input) != len(op) or len(input) != len(output):
         raise ValueError("Lengths of input, op, and output lists must be equal.")
-    
+
     delta_table_path = f"s3://{user_id}/{dataset_id}"
     dt = DeltaTable(
         table_uri=delta_table_path,
@@ -155,23 +188,20 @@ def read_delta_from_s3_as_pandas(
         df = dt.load_as_version().to_pandas()
         return df
 
+
 def read_delta_from_s3_as_pyarrow(
-    user_id,
-    dataset_id,
-    input: list = [],
-    op: list = [],
-    output: list = []
+    user_id, dataset_id, input: list = [], op: list = [], output: list = []
 ):
     valid_ops = ["=", "!=", "==", "in", "not in", "<", ">", "<=", ">="]
     if len(input) != len(op) or len(input) != len(output):
         raise ValueError("Lengths of input, op, and output lists must be equal.")
-    
+
     delta_table_path = f"s3://{user_id}/{dataset_id}"
     dt = DeltaTable(
         table_uri=delta_table_path,
         storage_options=storage_options,
     )
-    
+
     if input:
         filter_condition = []
         for i in range(len(input)):
@@ -184,4 +214,34 @@ def read_delta_from_s3_as_pyarrow(
     else:
         df = dt.load_as_version().to_pyarrow_dataset()
         return df
-    
+
+
+def delete_folder_from_s3(user_id, dataset_id):
+    try:
+        endpoint_url_parts = urlsplit(MINIO_ENDPOINT_URL)
+        # Initialize Minio client
+        minio_client = Minio(
+            endpoint_url_parts.netloc,
+            access_key=MINIO_ACCESS_KEY_ID,
+            secret_key=MINIO_SECRET_ACCESS_KEY,
+            secure=False,  # Set to True if your Minio server uses HTTPS
+        )
+
+        objects_to_delete = minio_client.list_objects(
+            user_id, prefix=dataset_id, recursive=True
+        )
+        for obj in objects_to_delete:
+            minio_client.remove_object(user_id, obj.object_name)
+
+    except S3Error as e:
+        # Handle Minio-specific errors
+        print(f"Minio S3Error: {e}")
+        raise e
+    except ConnectionRefusedError as e:
+        # Handle connection errors
+        print(f"Connection Error: {e}")
+        raise e
+    except Exception as e:
+        # Handle any other exceptions
+        print(f"An error occurred: {e}")
+        raise e

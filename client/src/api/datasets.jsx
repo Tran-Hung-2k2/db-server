@@ -19,8 +19,12 @@ const api = {
     },
 
     createDataset: async (data) => {
+        const fileField = data.get('file');
         const response = await axios.post(`/api/datasets/`, data, {
             withCredentials: true,
+            headers: {
+                Filename: fileField ? fileField.name : '',
+            },
         });
 
         return response.data;

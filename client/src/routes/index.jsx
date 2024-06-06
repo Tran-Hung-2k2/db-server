@@ -14,6 +14,7 @@ const DataMartManage = lazy(() => import('@pages/DataMartManage'));
 const DatasetManage = lazy(() => import('@/pages/DatasetManage'));
 const MLOpsManage = lazy(() => import('@pages/MLOpsManage'));
 const PipelineManage = lazy(() => import('@pages/PipelineManage'));
+const NotebookManage = lazy(() => import('@pages/NotebookManage'));
 const PipelineEdit = lazy(() => import('@pages/PipelineEdit'));
 
 const routes = [
@@ -63,6 +64,10 @@ const routes = [
                     {
                         path: '/pipelines/manage',
                         component: PipelineManage,
+                    },
+                    {
+                        path: '/notebooks/manage',
+                        component: NotebookManage,
                     },
                     {
                         path: '/mlops/experiments/manage',
