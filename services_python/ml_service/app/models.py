@@ -1,7 +1,17 @@
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, Integer, String, JSON, DateTime, func, text, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    JSON,
+    DateTime,
+    Sequence,
+    ForeignKey,
+    func,
+    text,
+)
 
 
 class Base(declarative_base(), SerializerMixin):
@@ -22,6 +32,11 @@ class Base(declarative_base(), SerializerMixin):
         server_default=text("CURRENT_TIMESTAMP"),
         onupdate=text("CURRENT_TIMESTAMP"),
     )
+    description = Column(
+        String,
+        nullable=True,
+    )
+    other = Column(JSON)
 
 
 class Project(Base):
@@ -48,10 +63,7 @@ class Project(Base):
         UUID(as_uuid=True),
         nullable=True,
     )
-
     config = Column(JSON)
-
-    other = Column(JSON)
 
 
 class Run(Base):
@@ -77,4 +89,25 @@ class Run(Base):
         unique=True,
     )
 
-    other = Column(JSON)
+
+class Model(Base):
+    __tablename__ = "models"
+
+    project_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+    )
+    run_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("runs.id", onupdate="CASCADE", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name = Column(
+        String,
+        nullable=True,
+    )
+    version = Column(
+        Integer,
+        nullable=False,
+    )
