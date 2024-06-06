@@ -3,15 +3,13 @@ import requests
 import pandas as pd
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-from services_python.ml_service.app import schemas
+from services_python.ml_service.app.schemas import runs as schemas
 from services_python.ml_service.app.models import Run, Project
-from services_python.utils import (
-    save_to_s3,
-    handle_database_errors,
-    make_response,
-    name_generator,
-)
+from services_python.utils.name_generator import name_generator
+from services_python.utils.api_response import make_response
+from services_python.utils.handle_errors_wrapper import handle_database_errors
 
 headers = {"Content-Type": "application/json"}
 
@@ -30,10 +28,10 @@ LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
 @handle_database_errors
 async def create_run(
-    db: Session,
-    request: Request,
     project_id: str,
     data: schemas.RunCreate,
+    request: Request,
+    db: Session,
 ):
     exist_project = db.query(Project).filter(Project.id == project_id).first()
     if not exist_project:
@@ -88,18 +86,20 @@ async def create_run(
 
 @handle_database_errors
 async def search_run(
-    db: Session,
     project_id: str,
     request: Request,
+    db: Session,
 ):
-
     query_params = dict(request.query_params)
     # Set skip and limit for pagination
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
     query = db.query(Run).filter(Run.project_id == project_id)
+
+    # Get total count and records
     total = query.count()
     records = query.offset(skip).limit(limit).all()
+
     df = pd.DataFrame([record.to_dict() for record in records])
 
     response = requests.post(
@@ -121,18 +121,21 @@ async def search_run(
                 "start_time",
                 "end_time",
                 "state_type",
-                "next_scheduled_start_time",
                 "total_run_time",
             ],
         )
-        df = df.merge(response_df, left_on="id", right_on="name", suffixes=("", "_dev"))
 
+        df = df.merge(response_df, left_on="id", right_on="name", suffixes=("", "_dev"))
+        df = df.drop(columns=["name_dev", "run_id", "flow_run_id"])
+        print(df)
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=make_response(
                 message="Lấy danh sách thành công",
                 data=df.to_dict(orient="records"),
-                other={"total": total, "skip": skip, "limit": limit},
+                total=total,
+                skip=skip,
+                limit=limit,
             ),
         )
     else:
@@ -146,10 +149,10 @@ async def search_run(
 
 @handle_database_errors
 async def get_run(
-    db: Session,
     project_id: str,
     run_id: str,
     request: Request,
+    db: Session,
 ):
 
     exist_run = (
@@ -160,37 +163,65 @@ async def get_run(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy project_run"),
         )
+    exist_run = exist_run.to_dict()
 
-    response = requests.get(
+    mlflow_response = requests.get(
         url=f"http://{MLFLOW_HOST}:{MLFLOW_PORT}/api/2.0/mlflow/runs/get",
         headers=headers,
-        json={"run_id": exist_run.to_dict()["run_id"]},
+        json={"run_id": exist_run["run_id"]},
+    )
+    prefect_response = requests.post(
+        url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/flow_runs/filter/",
+        headers=headers,
+        json={
+            "flow_runs": {
+                "id": {
+                    "any_": [exist_run["flow_run_id"]],
+                }
+            },
+        },
     )
 
-    if 200 <= response.status_code < 300:
+    if (
+        200 <= mlflow_response.status_code < 300
+        and 200 <= prefect_response.status_code < 300
+    ):
+        mlflow_response = mlflow_response.json()["run"]
+        prefect_response = prefect_response.json()[0]
+
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=make_response(
                 message="Lấy project_run thành công",
-                data=response.json()["run"],
+                data={
+                    "id": exist_run["id"],
+                    "project_id": exist_run["id"],
+                    "name": exist_run["name"],
+                    "start_time": prefect_response["start_time"],
+                    "end_time": prefect_response["end_time"],
+                    "state_type": prefect_response["state_type"],
+                    "total_run_time": prefect_response["total_run_time"],
+                    "artifact_uri": mlflow_response["info"]["artifact_uri"],
+                    "metric": mlflow_response["data"]["metrics"],
+                },
             ),
         )
     else:
         return JSONResponse(
-            status_code=response.status_code,
+            status_code=status.HTTP_400_BAD_REQUEST,
             content=make_response(
                 message="Lấy project_run thất bại",
-                detail=response.json(),
+                detail=prefect_response.json(),
             ),
         )
 
 
 @handle_database_errors
 async def delete_run(
-    db: Session,
     project_id: str,
     run_id: str,
     request: Request,
+    db: Session,
 ):
     # user_id = "00000000-0000-0000-0000-000000000000"
     exist_run = (
@@ -202,37 +233,21 @@ async def delete_run(
             content=make_response(message="Không tìm thấy dự án"),
         )
 
-    response = requests.post(
-        url=f"http://{MLFLOW_HOST}:{MLFLOW_PORT}/api/2.0/mlflow/runs/delete",
-        headers=headers,
-        json={"run_id": exist_run.to_dict()["run_id"]},
+    db.delete(exist_run)
+    db.commit()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=make_response(message="Xóa dự án thành công"),
     )
-
-    if 200 <= response.status_code < 300:
-        # Delete project
-        db.delete(exist_run)
-        db.commit()
-        return JSONResponse(
-            status_code=response.status_code,
-            content=make_response(message="Xóa dự án thành công"),
-        )
-    else:
-        return JSONResponse(
-            status_code=response.status_code,
-            content=make_response(
-                message="Xóa dự án thất bại",
-                detail=response.json(),
-            ),
-        )
 
 
 @handle_database_errors
 async def update_run(
-    db: Session,
     project_id: str,
     run_id: str,
-    request: Request,
     data: schemas.RunUpdate,
+    request: Request,
+    db: Session,
 ):
     exist_run = (
         db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
@@ -253,6 +268,5 @@ async def update_run(
         status_code=status.HTTP_200_OK,
         content={
             "message": "Cập nhật project_run thành công",
-            "data": exist_run.to_dict(),
         },
     )
