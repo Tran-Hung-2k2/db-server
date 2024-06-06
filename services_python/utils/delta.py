@@ -227,7 +227,9 @@ def delete_folder_from_s3(user_id, dataset_id):
             secure=False,  # Set to True if your Minio server uses HTTPS
         )
 
-        objects_to_delete = minio_client.list_objects(user_id, prefix=dataset_id, recursive=True)
+        objects_to_delete = minio_client.list_objects(
+            user_id, prefix=dataset_id, recursive=True
+        )
         for obj in objects_to_delete:
             minio_client.remove_object(user_id, obj.object_name)
 

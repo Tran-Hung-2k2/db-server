@@ -1,0 +1,7 @@
+user_id: duonghdt
+dataset_id: postgres_data
+postgresql_server: 172.21.5.32:5432
+postgresql_user: postgres
+postgresql_password: your_password_here
+postgresql_database: attributes
+postgresql_query: SELECT * FROM attributes_ts LIMIT 5000

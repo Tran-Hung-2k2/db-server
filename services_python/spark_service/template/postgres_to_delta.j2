@@ -1,0 +1,32 @@
+import pyspark
+from delta import *
+builder = (
+    pyspark.sql.SparkSession.builder.appName("MyApp") 
+)
+
+spark = configure_spark_with_delta_pip(builder).getOrCreate()
+
+minio_bucket = "{{user_id}}"
+dataset = "{{dataset_id}}"
+postgresql_server = "{{postgresql_server}}"
+postgresql_user = "{{postgresql_user}}"
+postgresql_password = "{{postgresql_password}}"
+postgresql_database = "{{postgresql_database}}"
+postgresql_query = "{{postgresql_query}}"
+
+
+df = (
+    spark.read
+    .format("jdbc")
+    .option("url", "jdbc:postgresql://{postgresql_server}/{postgresql_database}")
+    .option("user", "{postgresql_user}")
+    .option("password", "{postgresql_password}")
+    .option("query", "{postgresql_query};")
+    .option("driver", "org.postgresql.Driver")
+    .load()
+    .write
+    .format("delta")
+    .mode("append")
+    .save(f"s3a://{minio_bucket}/{dataset}")
+)
+spark.stop()
