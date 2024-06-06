@@ -2,10 +2,13 @@ import os
 import requests
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-from services_python.ml_service.app import schemas
+from services_python.ml_service.app.schemas import projects as schemas
 from services_python.ml_service.app.models import Project
-from services_python.utils import save_to_s3, handle_database_errors, make_response
+from services_python.utils.s3 import save_to_s3
+from services_python.utils.api_response import make_response
+from services_python.utils.handle_errors_wrapper import handle_database_errors
 
 headers = {"Content-Type": "application/json"}
 
@@ -28,19 +31,23 @@ LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
 @handle_database_errors
 async def create_project(
-    db: Session,
-    request: Request,
     data: schemas.ProjectCreate,
+    request: Request,
+    db: Session,
 ):
     # Set user_id and name_dev
-    data.user_id = "00000000-0000-0000-0000-000000000000"
+    data.user_id = "00000000-0000-0000-0000-000000000001"
 
     # Check if project already exists
-    exist_project = db.query(Project).filter(Project.name == data.name).first()
+    exist_project = (
+        db.query(Project)
+        .filter(Project.name == data.name, Project.user_id == data.user_id)
+        .first()
+    )
     if exist_project:
         return JSONResponse(
-            content=make_response(message="Dự án đã tồn tại"),
             status_code=status.HTTP_400_BAD_REQUEST,
+            content=make_response(message="Dự án đã tồn tại"),
         )
     new_project = Project(**data.dict())
     db.add(new_project)
@@ -52,47 +59,41 @@ async def create_project(
         headers=headers,
         json={"name": f"{new_project.id}"},
     )
-    if 400 <= response.status_code < 500:
-        db.rollback()
-        return JSONResponse(
-            status_code=response.status_code,
-            content=make_response(
-                message="Tạo dự án thất bại",
-            ),
-        )
-    else:
+    if 200 <= response.status_code < 300:
         new_project.experiment_id = response.json()["experiment_id"]
         db.commit()
         return JSONResponse(
             status_code=status.HTTP_201_CREATED,
-            content=make_response(
-                message="Tạo dự án thành công",
-                data=new_project.to_dict(),
-            ),
+            content=make_response(message="Tạo dự án thành công"),
+        )
+    else:
+        db.rollback()
+        return JSONResponse(
+            status_code=response.status_code,
+            content=make_response(message="Tạo dự án thất bại"),
         )
 
 
 @handle_database_errors
 async def search_project(
-    db: Session,
     request: Request,
+    db: Session,
 ):
-    user_id = "00000000-0000-0000-0000-000000000000"
-    ALLOWED_FILTER_FIELDS = {"id", "user_id"}
+    user_id = "00000000-0000-0000-0000-000000000001"
     query_params = dict(request.query_params)
     query_params["user_id"] = user_id
-
     # Set skip and limit for pagination
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
     limit = min(max(int(limit), 0), 200)
 
-    query = db.query(Project)
-
-    # Apply filters
-    for field, value in query_params.items():
-        if field in ALLOWED_FILTER_FIELDS and value is not None:
-            query = query.filter(getattr(Project, field) == value)
+    query = db.query(
+        Project.id,
+        Project.name,
+        Project.description,
+        Project.created_at,
+        Project.updated_at,
+    ).filter(Project.user_id == user_id)
 
     # Get total count and records
     total = query.count()
@@ -102,17 +103,19 @@ async def search_project(
         status_code=status.HTTP_200_OK,
         content=make_response(
             message="Lấy danh sách dự án thành công",
-            data=[record.to_dict() for record in records],
-            other={"total": total, "skip": skip, "limit": limit},
+            data=jsonable_encoder([record._asdict() for record in records]),
+            total=total,
+            skip=skip,
+            limit=limit,
         ),
     )
 
 
 @handle_database_errors
 async def delete_project(
-    db: Session,
-    request: Request,
     id: str,
+    request: Request,
+    db: Session,
 ):
     # user_id = "00000000-0000-0000-0000-000000000000"
     exist_project = db.query(Project).filter(Project.id == id).first()
@@ -134,10 +137,10 @@ async def delete_project(
 
 @handle_database_errors
 async def update_project(
-    db: Session,
-    request: Request,
     id: str,
     data: schemas.ProjectUpdate,
+    request: Request,
+    db: Session,
 ):
     # user_id = "db6a86d6-b313-4fb2-a556-18e6b8a8f452"
     exist_project = db.query(Project).filter(Project.id == id).first()
@@ -155,19 +158,16 @@ async def update_project(
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={
-            "message": "Cập nhật dự án thành công",
-            "data": exist_project.to_dict(),
-        },
+        content={"message": "Cập nhật dự án thành công"},
     )
 
 
 @handle_database_errors
 async def config_project(
-    db: Session,
-    request: Request,
     id: str,
     data: schemas.ProjectConfig,
+    request: Request,
+    db: Session,
 ):
     user_id = "00000000-0000-0000-0000-000000000000"
     exist_project = db.query(Project).filter(Project.id == id).first()
@@ -241,22 +241,21 @@ async def config_project(
             "schedules": [],
         },
     )
-    if 400 <= response.status_code < 500:
-        return JSONResponse(
-            status_code=response.status_code,
-            content=make_response(message="Cấu hình dự án thất bại"),
-        )
-    else:
+    if 200 <= response.status_code < 300:
         data.deployment_id = response.json()["id"]
         # Update project data
         for key, value in data.dict().items():
             setattr(exist_project, key, value)
-
         # Save changes to the database
         db.commit()
         return JSONResponse(
             status_code=status.HTTP_200_OK,
+            content=make_response(message="Cấu hình dự án thành công"),
+        )
+    else:
+        return JSONResponse(
+            status_code=response.status_code,
             content=make_response(
-                message="Cấu hình dự án thành công",
+                message="Cấu hình dự án thất bại", detail=response.json()
             ),
         )
