@@ -266,7 +266,5 @@ async def update_run(
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={
-            "message": "Cập nhật project_run thành công",
-        },
+        content={"message": "Cập nhật project_run thành công"},
     )
