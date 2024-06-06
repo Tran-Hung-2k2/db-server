@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "jsx": "preserve",
+        "paths": {
+            "@/*": ["./src/*"],
+            "@assets/*": ["./src/assets/*"],
+            "@api/*": ["./src/api/*"],
+            "@layouts/*": ["./src/layouts/*"],
+            "@components/*": ["./src/components/*"],
+            "@constants/*": ["./src/constants/*"],
+            "@pages/*": ["./src/pages/*"],
+            "@routes/*": ["./src/routes/*"],
+            "@utils/*": ["./src/utils/*"],
+            "@redux/*": ["./src/redux/*"]
+        }
+    }
+}

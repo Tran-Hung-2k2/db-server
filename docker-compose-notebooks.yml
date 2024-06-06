@@ -1,0 +1,11 @@
+version: '3'
+services:
+  notebooks:
+    build:
+      context: .
+      dockerfile: ./notebooks/docker/jupyter/Dockerfile
+    volumes:
+      - ./notebooks/work:/home/jovyan/work
+    ports:
+      - 8889:8888
+    command: "start-notebook.sh --NotebookApp.tornado_settings='{\"headers\": {\"Content-Security-Policy\": \"frame-ancestors self http://localhost:5173; report-uri /api/security/csp-report\"}}' --NotebookApp.token="

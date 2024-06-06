@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth
+      - users
+      - data
+    networks:
+      - main
+
+  auth:
+    build:
+      context: .
+      dockerfile: services_go/cmd/auth/Dockerfile
+    ports:
+      - "10080:8080"
+      - "50051:50051"
+    volumes:
+      - /root/db-server:/usr/src/app/
+    env_file:
+      - .env
+    networks:
+      - main
+
+  users:
+    build:
+      context: .
+      dockerfile: services_go/cmd/users/Dockerfile
+    ports:
+      - "10081:8080"
+      - "50052:50051"
+    volumes:
+      - /root/db-server:/usr/src/app/
+    env_file:
+      - .env
+    networks:
+      - main
+
+  data:
+    build:
+      context: .
+      dockerfile: services_python/data_service/Dockerfile
+    ports:
+      - "10082:8080"
+    volumes:
+      - /app/db-server:/usr/src/app/
+    env_file:
+      - .env
+    networks:
+      - main
+
+networks:
+  main:
+    name: main
+    driver: bridge

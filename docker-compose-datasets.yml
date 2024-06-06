@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  datasets:
+    build:
+      context: .
+      dockerfile: services_python/datasets_service/Dockerfile
+    ports:
+      - "8083:8080"
+    volumes:
+      - /app/db-server:/usr/src/app/
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - main
+
+networks:
+  main:
+    name: main
+    driver: bridge

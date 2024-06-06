@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./pb";
+
+service DataMartService {
+    rpc GetDataMart(GetDataMartRequest) returns (GetDataMartResponse) {};
+}
+
+message GetDataMartRequest {
+    string id = 1;
+}
+
+message GetDataMartResponse {
+    map<string, string> data = 1;
+}
