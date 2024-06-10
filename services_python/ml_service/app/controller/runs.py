@@ -99,52 +99,56 @@ async def search_run(
     # Get total count and records
     total = query.count()
     records = query.offset(skip).limit(limit).all()
+    records = [record.to_dict() for record in records]
 
-    df = pd.DataFrame([record.to_dict() for record in records])
-
-    response = requests.post(
-        url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/flow_runs/filter/",
-        headers=headers,
-        json={
-            "flow_runs": {
-                "id": {
-                    "any_": df["flow_run_id"].tolist(),
-                }
+    if total:
+        df = pd.DataFrame(records)
+        response = requests.post(
+            url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/flow_runs/filter/",
+            headers=headers,
+            json={
+                "flow_runs": {
+                    "id": {
+                        "any_": df["flow_run_id"].tolist(),
+                    }
+                },
             },
-        },
-    )
-    if 200 <= response.status_code < 300:
-        response_df = pd.DataFrame(
-            response.json(),
-            columns=[
-                "name",
-                "start_time",
-                "end_time",
-                "state_type",
-                "total_run_time",
-            ],
         )
+        if 200 <= response.status_code < 300:
+            response_df = pd.DataFrame(
+                response.json(),
+                columns=[
+                    "name",
+                    "start_time",
+                    "end_time",
+                    "state_type",
+                    "total_run_time",
+                ],
+            )
 
-        df = df.merge(response_df, left_on="id", right_on="name", suffixes=("", "_dev"))
-        df = df.drop(columns=["name_dev", "run_id", "flow_run_id"])
-        print(df)
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=make_response(
-                message="Lấy danh sách thành công",
-                data=df.to_dict(orient="records"),
-                total=total,
-                skip=skip,
-                limit=limit,
-            ),
-        )
-    else:
-        return JSONResponse(
-            status_code=400,
-            content=make_response(
-                message="Lấy danh sách thất bại", detail=response.json()
-            ),
-        )
+            df = df.merge(
+                response_df, left_on="id", right_on="name", suffixes=("", "_dev")
+            )
+            df = df.drop(columns=["name_dev", "run_id", "flow_run_id"])
+            records = df.to_dict(orient="records")
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=make_response(
+                    message="Lấy danh sách thất bại", detail=response.json()
+                ),
+            )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=make_response(
+            message="Lấy danh sách thành công",
+            data=records,
+            total=total,
+            skip=skip,
+            limit=limit,
+        ),
+    )
 
 
 @handle_database_errors
