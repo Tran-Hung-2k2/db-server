@@ -3,13 +3,11 @@ import requests
 import pandas as pd
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-
-# from services_python.ml_service.app.schemas import ml_models as shemas
 from services_python.ml_service.app.models import Project, Run, Model
 from services_python.utils.api_response import make_response
 from services_python.utils.handle_errors_wrapper import handle_database_errors
+from services_python.utils.s3 import list_from_s3
 
 headers = {"Content-Type": "application/json"}
 
@@ -69,6 +67,7 @@ async def search_model_version(
 ):
     user_id = "00000000-0000-0000-0000-000000000001"
     exist_project = db.query(Project).filter(Project.id == project_id).first()
+    print(exist_project)
     if not exist_project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -143,7 +142,6 @@ async def get_model_version(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Model version không tồn tại"),
         )
-
     response = requests.get(
         url=f"http://{MLFLOW_HOST}:{MLFLOW_PORT}/api/2.0/mlflow/runs/get",
         headers=headers,
