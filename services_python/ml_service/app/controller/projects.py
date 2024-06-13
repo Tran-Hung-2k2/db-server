@@ -4,8 +4,9 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
+from services_python.ml_service.app.constants.sklearn import SKLEARN_CONFIG
 from services_python.ml_service.app.schemas import projects as schemas
-from services_python.ml_service.app.models import Project
+from services_python.ml_service.app.models import Project, Run
 from services_python.utils.s3 import save_to_s3
 from services_python.utils.api_response import make_response
 from services_python.utils.handle_errors_wrapper import handle_database_errors
@@ -175,6 +176,19 @@ async def update_project(
 
 
 @handle_database_errors
+async def get_config(
+    request: Request,
+    db: Session,
+):
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=make_response(
+            message="Lấy cấu hình dự án thành công", data=SKLEARN_CONFIG
+        ),
+    )
+
+
+@handle_database_errors
 async def config_project(
     id: str,
     data: schemas.ProjectConfig,
@@ -276,3 +290,37 @@ async def config_project(
                 message="Cấu hình dự án thất bại", detail=response.json()
             ),
         )
+
+
+@handle_database_errors
+async def get_project_config(
+    id: str,
+    request: Request,
+    db: Session,
+):
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exist_project = db.query(Project).filter(Project.id == id).first()
+    if not exist_project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
+    query = db.query(
+        Project.id,
+        Project.name,
+        Project.config,
+    ).filter(Project.id == id)
+
+    project_config = query.first()._asdict()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=make_response(
+            message="Lấy danh sách dự án thành công",
+            data=jsonable_encoder(project_config),
+        ),
+    )

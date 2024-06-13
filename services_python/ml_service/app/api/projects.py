@@ -60,6 +60,17 @@ async def update_project(
     )
 
 
+@router.get("/config", summary="Get config parameter for project")
+async def get_config(
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    return await ctl.get_config(
+        request=request,
+        db=db,
+    )
+
+
 @router.post("/{id}", summary="Config a project")
 async def config_project(
     id: str,
@@ -70,6 +81,19 @@ async def config_project(
     return await ctl.config_project(
         id=id,
         data=data,
+        request=request,
+        db=db,
+    )
+
+
+@router.get("/{id}/config", summary="Get project latest configuration")
+async def get_project_config(
+    id: str,
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    return await ctl.get_project_config(
+        id=id,
         request=request,
         db=db,
     )
