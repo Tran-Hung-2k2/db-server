@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import InputPassword from './InputPasswod';
+import InputPassword from './InputPassword';
 
 export default function Component({ fields, title, onSubmit, children }) {
     // Khởi tạo trạng thái ban đầu cho các trường
     const fieldsState = fields.reduce(
-        (acc, field) => ({ ...acc, [field.name]: field.type == 'checkbox' ? true : '' }),
+        (acc, field) => ({ ...acc, [field.name]: field.type === 'checkbox' ? true : '' }),
         {},
     );
 
     // Sử dụng hook useState để quản lý trạng thái của các trường
     const [state, setState] = useState(fieldsState);
+    const [loading, setLoading] = useState(false);
 
     // Hàm xử lý sự thay đổi của các trường
     const handleChange = (e) => {
@@ -22,14 +23,25 @@ export default function Component({ fields, title, onSubmit, children }) {
         }
     };
 
+    // Hàm xử lý submit form
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await onSubmit(e, state);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Render component
     return (
-        <form className="m-2 space-y-6" onSubmit={(e) => onSubmit(e, state)}>
+        <form className="m-2 space-y-6" onSubmit={handleSubmit}>
             <h3 className="text-xl font-bold text-primary">{title}</h3>
             <div className="grid grid-cols-2 gap-4">
                 {children}
                 {fields.map((field) => (
-                    <div key={field.name} className={field.col == 1 ? '' : 'col-span-2'}>
+                    <div key={field.name} className={field.col === 1 ? '' : 'col-span-2'}>
                         {!field.inline_label && (
                             <label htmlFor={field.name} className="block mb-2 font-medium">
                                 {field.label}
@@ -116,8 +128,8 @@ export default function Component({ fields, title, onSubmit, children }) {
                 ))}
             </div>
 
-            <button type="submit" className="text-white btn btn-active btn-primary">
-                {title}
+            <button type="submit" className="text-white btn btn-active btn-primary" disabled={loading}>
+                {loading ? 'Loading...' : title}
             </button>
         </form>
     );

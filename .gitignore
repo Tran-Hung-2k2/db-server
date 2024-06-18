@@ -8,6 +8,7 @@ postgres
 nginx_local
 docker_images
 producer_kafka
+temp
 node_modules
 __pycache__
 *.csv

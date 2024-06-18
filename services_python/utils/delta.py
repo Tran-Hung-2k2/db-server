@@ -139,18 +139,18 @@ def query_sql_from_delta_table(
     con = duckdb.connect()
     delta_table_path = f"s3://{user_id}/{dataset_id}"
 
-    dt = DeltaTable(
+    dataset = DeltaTable(
         table_uri=delta_table_path,
         storage_options=storage_options,
         # version=version,
     ).to_pyarrow_table()
-    con.register(dataset_name, dt)
+    con.register(dataset_name, dataset)
     # Count the total number of records without skip and limit
     total_records = con.execute(f"SELECT COUNT(*) FROM ({sql_cmd})").fetchone()[0]
 
     result = con.execute(f"{sql_cmd} OFFSET {skip} LIMIT {limit};").fetchdf()
 
-    schema = dt.schema
+    schema = dataset.schema
 
     # Convert schema to dictionary
     schema_dict = {field.name: str(field.type) for field in schema}
@@ -171,7 +171,7 @@ def read_delta_from_s3_as_pandas(
         raise ValueError("Lengths of input, op, and output lists must be equal.")
 
     delta_table_path = f"s3://{user_id}/{dataset_id}"
-    dt = DeltaTable(
+    dataset = DeltaTable(
         table_uri=delta_table_path,
         storage_options=storage_options,
     )
@@ -182,10 +182,10 @@ def read_delta_from_s3_as_pandas(
                 raise ValueError(f"Invalid operator '{op[i]}' at index {i}.")
             condition = (input[i], op[i], output[i])
             filter_condition.append(condition)
-        df = dt.load_as_version(filter=filter_condition).to_pandas()
+        df = dataset.load_as_version(filter=filter_condition).to_pandas()
         return df
     else:
-        df = dt.load_as_version().to_pandas()
+        df = dataset.load_as_version().to_pandas()
         return df
 
 
@@ -197,7 +197,7 @@ def read_delta_from_s3_as_pyarrow(
         raise ValueError("Lengths of input, op, and output lists must be equal.")
 
     delta_table_path = f"s3://{user_id}/{dataset_id}"
-    dt = DeltaTable(
+    dataset = DeltaTable(
         table_uri=delta_table_path,
         storage_options=storage_options,
     )
@@ -209,29 +209,29 @@ def read_delta_from_s3_as_pyarrow(
                 raise ValueError(f"Invalid operator '{op[i]}' at index {i}.")
             condition = (input[i], op[i], output[i])
             filter_condition.append(condition)
-        df = dt.load_as_version(filter=filter_condition).to_pyarrow_dataset()
+        df = dataset.load_as_version(filter=filter_condition).to_pyarrow_dataset()
         return df
     else:
-        df = dt.load_as_version().to_pyarrow_dataset()
+        df = dataset.load_as_version().to_pyarrow_dataset()
         return df
 
 
-def delete_folder_from_s3(user_id, dataset_id):
+def delete_folder_from_s3(user_id: str, dataset_id: str):
     try:
         endpoint_url_parts = urlsplit(MINIO_ENDPOINT_URL)
         # Initialize Minio client
         minio_client = Minio(
             endpoint_url_parts.netloc,
-            access_key=MINIO_ACCESS_KEY_ID,
-            secret_key=MINIO_SECRET_ACCESS_KEY,
-            secure=False,  # Set to True if your Minio server uses HTTPS
+            access_key="Crl6bcvsiKQKqh9IuDDy",
+            secret_key="NCpGrwkQHeRFClrwe4vpDpciappmCSElJoOKsqaK",
+            secure=False,
         )
 
-        objects_to_delete = minio_client.list_objects(
-            user_id, prefix=dataset_id, recursive=True
+        objects = minio_client.list_objects(
+            bucket_name=user_id, prefix=dataset_id, recursive=True
         )
-        for obj in objects_to_delete:
-            minio_client.remove_object(user_id, obj.object_name)
+        for obj in objects:
+            minio_client.remove_object(str(user_id), str(obj.object_name))
 
     except S3Error as e:
         # Handle Minio-specific errors

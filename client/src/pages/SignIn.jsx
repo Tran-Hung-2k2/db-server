@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 
 import fields from '@constants/form/signin';
 import action from '@redux/auth/auth.action';
-import InputPassword from '@/components/InputPasswod';
+import InputPassword from '@/components/InputPassword';
 
 const fieldsState = fields.reduce((acc, field) => ({ ...acc, [field.id]: '' }), {});
 

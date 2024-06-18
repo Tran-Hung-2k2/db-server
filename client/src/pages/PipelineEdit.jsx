@@ -59,32 +59,16 @@ const initialNodes = [
         id: '1',
         targetPosition: Position.Left,
         sourcePosition: Position.Right,
-        position: { x: 0, y: 0 },
-        data: { icon: <LuImport size={26} />, title: 'readFile', subline: 'api.ts' },
+        position: { x: 0, y: 125 },
+        data: { icon: <LuImport size={26} />, title: 'Data loader', subline: 'Kafka' },
         type: 'turbo',
     },
     {
         id: '2',
         targetPosition: Position.Left,
         sourcePosition: Position.Right,
-        position: { x: 250, y: 0 },
-        data: { icon: <LuImport size={26} />, title: 'bundle', subline: 'apiContents' },
-        type: 'turbo',
-    },
-    {
-        id: '3',
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
-        position: { x: 0, y: 250 },
-        data: { icon: <LuImport size={26} />, title: 'readFile', subline: 'sdk.ts' },
-        type: 'turbo',
-    },
-    {
-        id: '4',
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
-        position: { x: 250, y: 250 },
-        data: { icon: <LuImport size={26} />, title: 'bundle', subline: 'sdkContents' },
+        position: { x: 250, y: 125 },
+        data: { icon: <TbTransform size={26} />, title: 'Transform', subline: 'Filter' },
         type: 'turbo',
     },
     {
@@ -92,25 +76,14 @@ const initialNodes = [
         targetPosition: Position.Left,
         sourcePosition: Position.Right,
         position: { x: 500, y: 125 },
-        data: { icon: <LuImport size={26} />, title: 'concat', subline: 'api, sdk' },
-        type: 'turbo',
-    },
-    {
-        id: '6',
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
-        position: { x: 750, y: 125 },
-        data: { icon: <FiFile />, title: 'fullBundle' },
+        data: { icon: <PiExportBold size={26} />, title: 'Data eporter', subline: 'MinIO Delta' },
         type: 'turbo',
     },
 ];
 
 const initialEdges = [
     { id: 'e1-2', source: '1', target: '2' },
-    { id: 'e3-4', source: '3', target: '4' },
     { id: 'e2-5', source: '2', target: '5' },
-    { id: 'e4-5', source: '4', target: '5' },
-    { id: 'e5-6', source: '5', target: '6' },
 ];
 
 // Default options for edges
@@ -195,7 +168,7 @@ const LayoutFlow = () => {
 
     return (
         <>
-            <FlowSidebar />
+            {/* <FlowSidebar /> */}
             <div className="reactflow-wrapper" ref={reactFlowWrapper}>
                 <ReactFlow
                     nodes={nodes}

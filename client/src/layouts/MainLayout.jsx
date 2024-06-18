@@ -11,7 +11,7 @@ const MainLayout = ({ children }) => {
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
                 <Sidebar className="min-w-[300px] h-full pb-20" open={open} setOpen={setOpen} />
             </div>
-            <div className={`${!open ? 'ml-20' : ''} w-screen mb-20 `}>
+            <div className={`${!open ? 'ml-20' : ''} w-screen mb-20 overflow-x-auto`}>
                 <Header />
                 {children}
             </div>

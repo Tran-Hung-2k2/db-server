@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 import fields from '@constants/form/signup';
 import api from '@api/auth';
-import InputPassword from '@/components/InputPasswod';
+import InputPassword from '@/components/InputPassword';
 
 const fieldsState = fields.reduce((acc, field) => ({ ...acc, [field.id]: '' }), {});
 

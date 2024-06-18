@@ -12,6 +12,7 @@ import HomeNavigate from '@pages/HomeNavigate';
 const ChannelManage = lazy(() => import('@pages/ChannelManage'));
 const DataMartManage = lazy(() => import('@pages/DataMartManage'));
 const DatasetManage = lazy(() => import('@/pages/DatasetManage'));
+const DatasetDetail = lazy(() => import('@/pages/DatasetDetail'));
 const MLOpsManage = lazy(() => import('@pages/MLOpsManage'));
 const PipelineManage = lazy(() => import('@pages/PipelineManage'));
 const NotebookManage = lazy(() => import('@pages/NotebookManage'));
@@ -56,6 +57,10 @@ const routes = [
                     {
                         path: '/datasets/manage',
                         component: DatasetManage,
+                    },
+                    {
+                        path: '/datasets/manage/detail/:id',
+                        component: DatasetDetail,
                     },
                     {
                         path: '/pipelines/manage/edit/:id',

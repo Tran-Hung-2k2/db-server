@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Loader from './Loader';
-import InputPassword from './InputPasswod';
+import InputPassword from './InputPassword';
 
 export default function Component({ fields, title, onSubmit, getData, children, reload }) {
     // Khởi tạo trạng thái ban đầu cho các trường

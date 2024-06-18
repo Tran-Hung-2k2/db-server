@@ -36,7 +36,7 @@ export default function Pagination({ skip, setSkip, limit, total }) {
                             setSkip((Math.ceil(total / limit) - 1) * limit);
                         } else setSkip((e.target.value - 1) * limit);
                 }}
-                className="grid content-center w-12 font-semibold -translate-y-px bg-white border-none input join-item focus:outline-none"
+                className="grid content-center pr-10 font-semibold -translate-y-px border-none max-w-12 input join-item focus:outline-none"
                 style={{
                     MozAppearance: 'textfield',
                 }}

@@ -202,7 +202,7 @@ async def delete_dataset(db: Session, id: int, request: Request):
         # Xóa dataset
         db.delete(exist_dataset)
         db.flush()
-        delete_folder_from_s3(request.state.id, id)
+        delete_folder_from_s3(str(request.state.id), str(id))
         db.commit()
     except Exception as e:
         db.rollback()
