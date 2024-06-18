@@ -70,3 +70,5 @@ usersrv:
 clientsrv: 
 	cd client && npm run dev
 
+mlsrv:
+	$(PYTHON) services_python/ml_service/app/main.py

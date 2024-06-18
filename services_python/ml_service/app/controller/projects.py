@@ -4,8 +4,9 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
+from services_python.ml_service.app.constants.sklearn import SKLEARN_CONFIG
 from services_python.ml_service.app.schemas import projects as schemas
-from services_python.ml_service.app.models import Project
+from services_python.ml_service.app.models import Project, Run
 from services_python.utils.s3 import save_to_s3
 from services_python.utils.api_response import make_response
 from services_python.utils.handle_errors_wrapper import handle_database_errors
@@ -17,14 +18,16 @@ PREFECT_HOST = os.getenv("PREFECT_HOST")
 PREFECT_PORT = os.getenv("PREFECT_PORT")
 MLFLOW_HOST = os.getenv("MLFLOW_HOST")
 MLFLOW_PORT = os.getenv("MLFLOW_PORT")
-AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_ACCESS_KEY")
-AWS_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL")
 DB_HOST = os.getenv("POSTGRES_HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASS")
 DB_NAME = os.getenv("POSTGRES_NAME")
+SKLEARN_FLOW_ID = os.getenv("SKLEARN_FLOW_ID")
+PYTORCH_FLOW_ID = os.getenv("PYTORCH_FLOW_ID")
 # Set default limit for records
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
@@ -47,7 +50,7 @@ async def create_project(
     if exist_project:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content=make_response(message="Dự án đã tồn tại"),
+            content=make_response(message="Tên dự án đã tồn tại"),
         )
     new_project = Project(**data.dict())
     db.add(new_project)
@@ -117,12 +120,17 @@ async def delete_project(
     request: Request,
     db: Session,
 ):
-    # user_id = "00000000-0000-0000-0000-000000000000"
+    user_id = "00000000-0000-0000-0000-000000000000"
     exist_project = db.query(Project).filter(Project.id == id).first()
     if not exist_project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
         )
 
     # Delete project
@@ -142,12 +150,17 @@ async def update_project(
     request: Request,
     db: Session,
 ):
-    # user_id = "db6a86d6-b313-4fb2-a556-18e6b8a8f452"
+    user_id = "00000000-0000-0000-0000-000000000000"
     exist_project = db.query(Project).filter(Project.id == id).first()
     if not exist_project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
         )
     # Update project data
     for key, value in data.dict().items():
@@ -159,6 +172,19 @@ async def update_project(
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "Cập nhật dự án thành công"},
+    )
+
+
+@handle_database_errors
+async def get_config(
+    request: Request,
+    db: Session,
+):
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=make_response(
+            message="Lấy cấu hình dự án thành công", data=SKLEARN_CONFIG
+        ),
     )
 
 
@@ -176,19 +202,24 @@ async def config_project(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy dự án"),
         )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
     # Save flow content to Minio S3
     if data.flow == "sklearnflow":
         from services_python.ml_service.app.templates.sklearn_flow import (
             SKLEARN_FLOW as FLOW,
         )
 
-        flow_id = "00000000-0000-0000-0000-000000000000"
+        flow_id = SKLEARN_FLOW_ID
     elif data.flow == "pytorchflow":
         from services_python.ml_service.app.templates.pytorch_flow import (
             PYTORCH_FLOW as FLOW,
         )
 
-        flow_id = "00000000-0000-0000-0000-000000000001"
+        flow_id = PYTORCH_FLOW_ID
 
     else:
         return JSONResponse(
@@ -259,3 +290,37 @@ async def config_project(
                 message="Cấu hình dự án thất bại", detail=response.json()
             ),
         )
+
+
+@handle_database_errors
+async def get_project_config(
+    id: str,
+    request: Request,
+    db: Session,
+):
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exist_project = db.query(Project).filter(Project.id == id).first()
+    if not exist_project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
+    query = db.query(
+        Project.id,
+        Project.name,
+        Project.config,
+    ).filter(Project.id == id)
+
+    project_config = query.first()._asdict()
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=make_response(
+            message="Lấy danh sách dự án thành công",
+            data=jsonable_encoder(project_config),
+        ),
+    )

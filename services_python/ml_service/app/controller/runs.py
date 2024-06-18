@@ -18,10 +18,9 @@ PREFECT_HOST = os.getenv("PREFECT_HOST")
 PREFECT_PORT = os.getenv("PREFECT_PORT")
 MLFLOW_HOST = os.getenv("MLFLOW_HOST")
 MLFLOW_PORT = os.getenv("MLFLOW_PORT")
-AWS_ACCESS_KEY_ID = os.getenv("MINIO_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("MINIO_SECRET_ACCESS_KEY")
-AWS_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL")
-
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL")
 # Set default limit for records
 LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 
@@ -33,11 +32,17 @@ async def create_run(
     request: Request,
     db: Session,
 ):
+    user_id = "00000000-0000-0000-0000-000000000000"
     exist_project = db.query(Project).filter(Project.id == project_id).first()
     if not exist_project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
         )
     data.project_id = project_id
     # Check deployment_id
@@ -90,6 +95,18 @@ async def search_run(
     request: Request,
     db: Session,
 ):
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exist_project = db.query(Project).filter(Project.id == project_id).first()
+    if not exist_project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
     query_params = dict(request.query_params)
     # Set skip and limit for pagination
     skip = int(query_params.get("skip", 0))
@@ -158,21 +175,30 @@ async def get_run(
     request: Request,
     db: Session,
 ):
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exist_project = db.query(Project).filter(Project.id == project_id).first()
+    if not exist_project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
 
-    exist_run = (
-        db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
-    )
+    exist_run = db.query(Run).filter(Run.id == run_id).first()
     if not exist_run:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy project_run"),
         )
-    exist_run = exist_run.to_dict()
 
     mlflow_response = requests.get(
         url=f"http://{MLFLOW_HOST}:{MLFLOW_PORT}/api/2.0/mlflow/runs/get",
         headers=headers,
-        json={"run_id": exist_run["run_id"]},
+        json={"run_id": exist_run.run_id},
     )
     prefect_response = requests.post(
         url=f"http://{PREFECT_HOST}:{PREFECT_PORT}/api/flow_runs/filter/",
@@ -180,7 +206,7 @@ async def get_run(
         json={
             "flow_runs": {
                 "id": {
-                    "any_": [exist_run["flow_run_id"]],
+                    "any_": [exist_run.flow_run_id],
                 }
             },
         },
@@ -192,15 +218,14 @@ async def get_run(
     ):
         mlflow_response = mlflow_response.json()["run"]
         prefect_response = prefect_response.json()[0]
-
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content=make_response(
                 message="Lấy project_run thành công",
                 data={
-                    "id": exist_run["id"],
-                    "project_id": exist_run["id"],
-                    "name": exist_run["name"],
+                    "id": str(exist_run.id),
+                    "project_id": str(exist_run.project_id),
+                    "name": exist_run.name,
                     "start_time": prefect_response["start_time"],
                     "end_time": prefect_response["end_time"],
                     "state_type": prefect_response["state_type"],
@@ -227,21 +252,30 @@ async def delete_run(
     request: Request,
     db: Session,
 ):
-    # user_id = "00000000-0000-0000-0000-000000000000"
-    exist_run = (
-        db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
-    )
-    if not exist_run:
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exist_project = db.query(Project).filter(Project.id == project_id).first()
+    if not exist_project:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
+    exist_run = db.query(Run).filter(Run.id == run_id).first()
+    if not exist_run:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy project_run"),
         )
 
     db.delete(exist_run)
     db.commit()
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content=make_response(message="Xóa dự án thành công"),
+        content=make_response(message="Xóa project_run thành công"),
     )
 
 
@@ -253,9 +287,19 @@ async def update_run(
     request: Request,
     db: Session,
 ):
-    exist_run = (
-        db.query(Run).filter(Run.id == run_id, Run.project_id == project_id).first()
-    )
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exist_project = db.query(Project).filter(Project.id == project_id).first()
+    if not exist_project:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=make_response(message="Không tìm thấy dự án"),
+        )
+    if str(exist_project.user_id) != str(user_id):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=make_response(message="Không có quyền truy cập"),
+        )
+    exist_run = db.query(Run).filter(Run.id == run_id).first()
     if not exist_run:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
