@@ -13,8 +13,8 @@ default_args = {
     "retry_delay": timedelta(minutes=5),
 }
 dag = DAG(
-    dag_display_name="dag_display_name",
-    dag_id="spark_dag",
+    dag_display_name="1",
+    dag_id="1",
     default_args=default_args,
     description="A simple tutorial DAG",
     schedule=timedelta(days=1),

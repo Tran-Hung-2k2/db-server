@@ -3,12 +3,12 @@ from pydantic import UUID4
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 
-import services_python.spark_service.app.controllers.jobs as ctl
-import services_python.spark_service.app.schemas.jobs as schemas
+import services_python.spark_service.app.controllers.pipelines as ctl
+import services_python.spark_service.app.schemas.pipelines as schemas
 import services_python.middlewares.auth as middlewares
 from services_python.spark_service.app.database import get_session
 
-router = APIRouter(prefix="/jobs", tags=["jobs"])
+router = APIRouter(prefix="/pipelines", tags=["Pipelines"])
 
 # ROUTES FOR PIPELINES
 
