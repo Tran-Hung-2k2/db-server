@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  mlops:
+    build:
+      context: .
+      dockerfile: services_python/ml_service/Dockerfile
+    ports:
+      - "8088:8080"
+    volumes:
+      - /app/db-server:/usr/src/app/
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - host
+
+networks:
+  main:
+    name: host
+    driver: bridge

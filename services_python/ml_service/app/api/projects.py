@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
-from services_python.ml_service.app import schemas
-from services_python.ml_service.app import controller as ctl
+from services_python.ml_service.app.schemas import projects as schemas
+from services_python.ml_service.app.controller import projects as ctl
 from services_python.ml_service.app.database import get_session
 
 from sqlalchemy.orm import Session
@@ -10,13 +10,13 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 
 @router.post("/", summary="Create a project with name")
 async def create_project(
-    request: Request,
     data: schemas.ProjectCreate,
+    request: Request,
     db: Session = Depends(get_session),
 ):
     return await ctl.create_project(
-        request=request,
         data=data,
+        request=request,
         db=db,
     )
 
@@ -48,14 +48,25 @@ async def delete_project(
 @router.patch("/{id}", summary="Update a project")
 async def update_project(
     id: str,
-    request: Request,
     data: schemas.ProjectUpdate,
+    request: Request,
     db: Session = Depends(get_session),
 ):
     return await ctl.update_project(
         id=id,
-        request=request,
         data=data,
+        request=request,
+        db=db,
+    )
+
+
+@router.get("/config", summary="Get config parameter for project")
+async def get_config(
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    return await ctl.get_config(
+        request=request,
         db=db,
     )
 
@@ -63,13 +74,26 @@ async def update_project(
 @router.post("/{id}", summary="Config a project")
 async def config_project(
     id: str,
-    request: Request,
     data: schemas.ProjectConfig,
+    request: Request,
     db: Session = Depends(get_session),
 ):
     return await ctl.config_project(
         id=id,
-        request=request,
         data=data,
+        request=request,
+        db=db,
+    )
+
+
+@router.get("/{id}/config", summary="Get project latest configuration")
+async def get_project_config(
+    id: str,
+    request: Request,
+    db: Session = Depends(get_session),
+):
+    return await ctl.get_project_config(
+        id=id,
+        request=request,
         db=db,
     )

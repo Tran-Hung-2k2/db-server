@@ -2,20 +2,20 @@ def make_response(
     message: str = None,
     detail: str = None,
     data=None,
-    other: dict = None,
+    total: int = None,
+    skip: int = None,
+    limit: int = None,
 ):
-    if other:
-        return {
-            "message": message,
-            "detail": detail,
-            "data": data,
-            "total": other["total"],
-            "skip": other["skip"],
-            "limit": other["limit"],
-        }
-    else:
-        return {
-            "message": message,
-            "detail": detail,
-            "data": data,
-        }
+    response = {
+        "message": message,
+        "detail": detail,
+        "data": data,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+    }
+
+    # Filter out key-value pairs where the value is None
+    response = {k: v for k, v in response.items() if v is not None}
+
+    return response

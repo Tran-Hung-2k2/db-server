@@ -4,22 +4,23 @@ from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
 from airflow.models import Variable
 
 default_args = {
-    'owner': 'duonghdt',
-    'depends_on_past': False,
-    'email': ['hoatungduong12@gmail.com'],
+    "owner": "duonghdt",
+    "depends_on_past": False,
+    "email": ["hoatungduong12@gmail.com"],
     "email_on_failure": False,
     "email_on_retry": False,
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
 }
 dag = DAG(
-    dag_id='{{dag_id}}',
+    dag_display_name="2",
+    dag_id="2",
     default_args=default_args,
     description="A simple tutorial DAG",
-    schedule=timedelta(days=1),            
-    start_date=datetime(2021, 1, 1),
-    catchup=False,                     
-    tags=["Spark"]
+    start_date=datetime(2024, 6, 1),
+    catchup=False,
+    tags=["Spark"],
+    schedule_interval=None,
 )
 
 # pyspark_app_home = Variable.get("PYSPARK_APP_HOME")
@@ -33,19 +34,19 @@ spark_conf = {
 }
 
 Task1 = SparkSubmitOperator(
-                                                task_id='{{task_id}}',
-                                                conn_id='spark_standalone',
-                                                conf=spark_conf,
-                                                # application=f'{pyspark_app_home}/spark/search_event_ingestor.py',
-                                                application='/home/duonghdt/Desktop/Python/db-server/services_python/spark_service/spark_job/{{job_name}}.py',
-                                                total_executor_cores=2,
-                                                packages="org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,io.delta:delta-spark_2.12:3.1.0,org.apache.hadoop:hadoop-aws:3.3.4",
-                                                executor_cores=2,
-                                                executor_memory='4g',
-                                                driver_memory='1g',
-                                                name='Airflow_Spark',
-                                                dag=dag
-                                            )
+    task_id="random_id",
+    conn_id="spark_standalone",
+    conf=spark_conf,
+    # application=f'{pyspark_app_home}/spark/search_event_ingestor.py',
+    application="/home/duonghdt/Desktop/Python/db-server/services_python/spark_service/spark_job/random_job_name.py",
+    total_executor_cores=2,
+    packages="org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,io.delta:delta-spark_2.12:3.1.0,org.apache.hadoop:hadoop-aws:3.3.4",
+    executor_cores=2,
+    executor_memory="4g",
+    driver_memory="1g",
+    name="Airflow_Spark",
+    dag=dag,
+)
 
 Task1
 # flight_search_waiting_time = SparkSubmitOperator(task_id='flight_search_waiting_time',
@@ -72,5 +73,5 @@ Task1
 #                                        name='flight_nb_search',
 #                                        execution_timeout=timedelta(minutes=10),
 #                                        dag=dag
-                                    #    )
+#    )
 # flight_search_ingestion >> [flight_search_waiting_time, flight_nb_search]

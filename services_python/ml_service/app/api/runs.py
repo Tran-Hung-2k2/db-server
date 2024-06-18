@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
-from services_python.ml_service.app import schemas
-from services_python.ml_service.app import controller as ctl
+from services_python.ml_service.app.schemas import runs as schemas
+from services_python.ml_service.app.controller import runs as ctl
 from services_python.ml_service.app.database import get_session
 
 from sqlalchemy.orm import Session
@@ -11,14 +11,14 @@ router = APIRouter(prefix="/projects/{project_id}/runs", tags=["Runs"])
 @router.post("/", summary="Create a run from a project")
 async def create_run(
     project_id: str,
-    request: Request,
     data: schemas.RunCreate,
+    request: Request,
     db: Session = Depends(get_session),
 ):
     return await ctl.create_run(
         project_id=project_id,
-        request=request,
         data=data,
+        request=request,
         db=db,
     )
 
@@ -70,14 +70,14 @@ async def delete_run(
 async def update_run(
     project_id: str,
     run_id: str,
+    data: schemas.RunUpdate,
     request: Request,
-    data: schemas.ProjectUpdate,
     db: Session = Depends(get_session),
 ):
     return await ctl.update_run(
         project_id=project_id,
         run_id=run_id,
-        request=request,
         data=data,
+        request=request,
         db=db,
     )

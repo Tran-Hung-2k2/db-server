@@ -3,12 +3,13 @@ from sqlalchemy.orm import Session
 from fastapi import status, Request, UploadFile
 from fastapi.responses import JSONResponse
 import json
-from services_python.mage_service.app.models import Pipeline, Block, PipelineSchedule
-import services_python.mage_service.app.schemas.pipelines as schemas
+from services_python.spark_service.app.models import Pipeline, Block, PipelineSchedule
+import services_python.spark_service.app.schemas.pipelines as schemas
 from services_python.utils.exception import MyException
 import services_python.constants.label as label
 from services_python.utils.handle_errors_wrapper import handle_database_errors
 from unidecode import unidecode
+
 
 import requests  # type: ignore
 
@@ -17,6 +18,10 @@ LIMIT_RECORD = int(os.getenv("LIMIT_RECORD", "50"))
 MAGE_HOST = os.getenv("MAGE_HOST", "localhost")
 MAGE_PORT = os.getenv("MAGE_PORT", "6789")
 MAGE_API_KEY = os.getenv("MAGE_API_KEY", "zkWlN0PkIKSN0C11CfUHUj84OT5XOJ6tDZ6bDRO2")
+
+AIRFLOW_HOST = os.getenv("AIRFLOW_HOST", "localhost")
+AIRFLOW_PORT = os.getenv("AIRFLOW_PORT", "7788")
+AIRFLOW_API_KEY = os.getenv("AIRFLOW_API_KEY", "Basic YWRtaW46MQ==")
 
 # HANDLE PIPELINES
 
@@ -32,60 +37,53 @@ async def get_all_pipelines(
     limit = int(query_params.get("limit", LIMIT_RECORD))
     limit = min(max(int(limit), 0), 200)
     sort_by = query_params.get("sort_by", "name").lower()
-    if sort_by not in ["name", "updated", "created"]:
-        sort_by = "name"
+    if sort_by not in ["dag_display_name"]:
+        sort_by = "dag_display_name"
     sort_dim = query_params.get("sort_dim", "desc").lower()
     if sort_dim not in ["desc"]:
         sort_dim = "-"
     else:
         sort_dim = ""
-    search = unidecode(query_params.get("name", "")).lower().strip().replace(" ", "_")
-    if search != "":
-        search = f"&search=pipeline_{search}"
-    else:
-        search = ""
-    pipeline_type = query_params.get("type", "").lower()
-    if pipeline_type in ["stream"]:
-        pipeline_type = "&type[]=streaming"
-    elif pipeline_type in ["batch"]:
-        pipeline_type = "&type[]=python"
-    else:
-        pipeline_type = ""
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines?tag[]={user_id}&_limit={limit}&_offset={skip}&include_schedules=1&_order_by[]={sort_dim}{sort_by}{search}{pipeline_type}"
-    headers = {"x_api_key": MAGE_API_KEY}
-    response = requests.get(url, headers=headers)
+    params = {
+        'tags': user_id,
+        'limit': limit,
+        'offset': skip,
+        'order_by': f"{sort_dim}{sort_by}",
+        'fields':"dag_id,dag_display_name,description,is_active,schedule_interval"
+    }
+
+    url = f"http://{AIRFLOW_HOST}:{AIRFLOW_PORT}/api/v1/dags"
+    headers = {"Authorization": AIRFLOW_API_KEY}
+    response = requests.get(url, headers=headers, params=params)
     data_dict = response.json()
     extracted_data = []
-
-    # Iterate over each pipeline and extract required fields
-    for pipeline in data_dict["pipelines"]:
-        extracted_pipeline = {
-            "created_at": pipeline.get("created_at"),
-            "updated_at": pipeline.get("updated_at"),
-            "description": pipeline.get("description"),
-            "name": db.query(Pipeline)
-            .filter((Pipeline.id == pipeline.get("uuid")[-36:].replace("_", "-")))
-            .first()
-            .name,
-            "settings": pipeline.get("settings"),
-            "type": "stream" if pipeline.get("type") == "streaming" else "batch",
-            "uuid": pipeline.get("uuid")[-36:].replace("pipeline_", ""),
-            "blocks_number": len(pipeline.get("blocks", [])),
-            "schedules_number": len(pipeline.get("schedules", [])),
-            "status": None,
-        }
-        schedules = pipeline.get("schedules", [])
-        if not schedules:
-            extracted_pipeline["status"] = "no schedule"
-        else:
-            # Check if any schedule is active
-            any_active = any(
-                schedule.get("status") == "active" for schedule in schedules
+    for pipeline in data_dict["dags"]:
+        exist_pipeline = (
+            db.query(Pipeline)
+            .filter(
+                (Pipeline.id == pipeline.get("dag_id").replace("_", "-"))
+                & (Pipeline.user_id == request.state.id)
             )
-            if any_active:
-                extracted_pipeline["status"] = "active"
-            else:
-                extracted_pipeline["status"] = "inactive"
+            .first()
+        )
+        block_number = (
+            db.query(Block).filter(Block.pipeline_id == exist_pipeline.id).count()
+        )
+        schedule_number = (
+            db.query(PipelineSchedule).filter(PipelineSchedule.pipeline_id == exist_pipeline.id).count()
+        )
+        extracted_pipeline = {
+            "created_at": exist_pipeline.created_at,
+            "updated_at": exist_pipeline.updated_at,
+            "description": pipeline.get("description"),
+            "name": exist_pipeline.name,
+            "settings": None,
+            "type": exist_pipeline.pipeline_type,
+            "uuid": pipeline.get("dag_id"),
+            "blocks_number": block_number,
+            "schedules_number": schedule_number,
+            "status": "active" if pipeline.get("is_active") else "inactive",
+        }
 
         extracted_data.append(extracted_pipeline)
 
@@ -121,38 +119,39 @@ async def get_one_pipeline(
             content={"data": [], "message": "Pipeline không tồn tại"},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/pipeline_{unidecode(exist_pipeline.name).replace(' ', '_').lower()}_{uuid}"
-    headers = {"x_api_key": MAGE_API_KEY}
+
+
+    url = f"http://{AIRFLOW_HOST}:{AIRFLOW_PORT}/api/v1/dags/{uuid}/tasks"
+    headers = {"Authorization": AIRFLOW_API_KEY}
     response = requests.get(url, headers=headers)
     data_dict = response.json()
+
     extracted_data = [
         {
-            "created_at": data_dict["pipeline"]["created_at"],
-            "updated_at": data_dict["pipeline"]["updated_at"],
-            "description": data_dict["pipeline"]["description"],
+            "created_at": exist_pipeline.created_at,
+            "updated_at": exist_pipeline.updated_at,
+            # "description": data_dict["pipeline"]["description"],
             "name": exist_pipeline.name,
-            "settings": data_dict["pipeline"]["settings"],
-            "type": (
-                "stream" if data_dict["pipeline"]["type"] == "streaming" else "batch"
-            ),
-            "uuid": data_dict["pipeline"]["uuid"][-36:],
+            "settings": None,
+            "type": exist_pipeline.pipeline_type,
+            "uuid": uuid,
             "blocks": [
                 {
-                    "name": db.query(Block)
-                    .filter(Block.id == block["uuid"][-36:].replace("_", "-"))
+                    "name": block["task_display_name"],
+                    "downstream_blocks": block["downstream_task_ids"],
+                    "type": db.query(Block)
+                    .filter(Block.id == block["task_id"].replace("_", "-"))
                     .first()
-                    .name,
-                    "downstream_blocks": block["downstream_blocks"][-36:],
-                    "type": block["type"],
-                    "upstream_blocks": block["upstream_blocks"][-36:],
-                    "uuid": block["uuid"][-36:],
-                    "status": block["status"],
-                    "conditional_blocks": block["conditional_blocks"],
-                    "callback_blocks": block["callback_blocks"],
-                    "has_callback": block["has_callback"],
-                    "retry_config": block["retry_config"],
+                    .block_type,
+                    # "upstream_blocks": block["upstream_blocks"][-36:],
+                    # "uuid": block["task_id"],
+                    # "status": block["status"],
+                    # "conditional_blocks": block["conditional_blocks"],
+                    # "callback_blocks": block["callback_blocks"],
+                    # "has_callback": block["has_callback"],
+                    "retry_config": block["retry_delay"],
                 }
-                for block in data_dict["pipeline"]["blocks"]
+                for block in data_dict["tasks"]
             ],
         }
     ]
@@ -166,6 +165,9 @@ async def get_one_pipeline(
         },
         status_code=status.HTTP_200_OK,
     )
+
+
+from services_python.spark_service.template.generate_dag import generate_dag
 
 
 @handle_database_errors
@@ -195,42 +197,30 @@ async def create_pipelines(
     new_record = Pipeline(
         name=data.name, pipeline_type=data.type, user_id=request.state.id
     )
-    pipeline_type = data.type
     description = data.description
 
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
+
     extracted_info = {
-        "pipeline": {
-            "name": (
-                "pipeline_"
-                + unidecode(new_record.name.replace(" ", "_"))
-                + "_"
-                + str(new_record.id)
-            ),
-            "type": "streaming" if pipeline_type == "stream" else "python",
-            "tags": [str(new_record.user_id)],
-            "description": description,
-        }
+        "dag_name": new_record.name,
+        "dag_id": str(new_record.id).replace("-", "_"),
+        "user_id": [str(new_record.user_id).replace("-", "_")],
+        "description": description,
     }
-    url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines"
-    headers = {"x_api_key": MAGE_API_KEY}
-    response = requests.post(url, json=extracted_info, headers=headers)
-    data_dict = response.json()
-    if "error" not in data_dict:
-        pipeline = data_dict["pipeline"]
+    if generate_dag(extracted_info):
         extracted_pipeline = {
-            "created_at": pipeline.get("created_at"),
-            "updated_at": pipeline.get("updated_at"),
-            "description": pipeline.get("description"),
+            "created_at": new_record.created_at,
+            "updated_at": new_record.updated_at,
+            "description": description,
             "name": new_record.name,
-            "settings": pipeline.get("settings"),
-            "type": "stream" if pipeline.get("type") == "streaming" else "batch",
-            "uuid": pipeline.get("uuid")[-36:],
+            "settings": None,
+            "type": new_record.pipeline_type,
+            "uuid": new_record.id.replace("-", "_"),
             # "variables_dir": pipeline.get("variables_dir"),
-            "blocks_number": len(pipeline.get("blocks", [])),
-            "schedules_number": len(pipeline.get("schedules", [])),
+            "blocks_number": 0,
+            "schedules_number": 0,
         }
         extracted_data = [extracted_pipeline]
         return JSONResponse(
@@ -243,7 +233,7 @@ async def create_pipelines(
         )
     else:
         extracted_data = []
-        detail = data_dict["error"]["exception"]
+        detail = ["Error when creating DAG"]
         db.delete(new_record)
         db.commit()
         return JSONResponse(
@@ -468,8 +458,6 @@ async def get_one_block(
         },
         status_code=status.HTTP_200_OK,
     )
-
-from services_python.mage_service.template.get_block_content import get_block_content
 
 
 @handle_database_errors
@@ -834,7 +822,7 @@ async def get_all_pipeline_schedules(
     db: Session,
     request: Request,
 ):
-    
+
     query_params = dict(request.query_params)
     skip = int(query_params.get("skip", 0))
     limit = int(query_params.get("limit", LIMIT_RECORD))
@@ -861,30 +849,30 @@ async def get_all_pipeline_schedules(
     data_dict = response.json()
     extracted_data = [
         {
-                "created_at": schedule["created_at"],
-                "updated_at": schedule["updated_at"],
-                "description": schedule["description"],
-                "name": db.query(PipelineSchedule)
-                .filter((PipelineSchedule.id == schedule.get("id").replace("_", "-")))
-                .first()
-                .name,
-                "settings": schedule["settings"],
-                "id": schedule["id"],
-                "last_enabled_at": schedule["last_enabled_at"],
-                "schedule_interval": schedule["schedule_interval"],
-                "schedule_type": schedule["schedule_type"],
-                "start_time": schedule["start_time"],
-                "status": schedule["status"],
-                "token": schedule["token"],
-                # "variables": schedule["variables"],
-                "last_pipeline_run_status": schedule["last_pipeline_run_status"],
-                "next_pipeline_run_date": schedule["next_pipeline_run_date"],
-                "pipeline_in_progress_runs_count": schedule[
-                    "pipeline_in_progress_runs_count"
-                ],
-                "pipeline_runs_count": schedule["pipeline_runs_count"],
-            }
-            for schedule in data_dict["pipeline_schedules"]
+            "created_at": schedule["created_at"],
+            "updated_at": schedule["updated_at"],
+            "description": schedule["description"],
+            "name": db.query(PipelineSchedule)
+            .filter((PipelineSchedule.id == schedule.get("id").replace("_", "-")))
+            .first()
+            .name,
+            "settings": schedule["settings"],
+            "id": schedule["id"],
+            "last_enabled_at": schedule["last_enabled_at"],
+            "schedule_interval": schedule["schedule_interval"],
+            "schedule_type": schedule["schedule_type"],
+            "start_time": schedule["start_time"],
+            "status": schedule["status"],
+            "token": schedule["token"],
+            # "variables": schedule["variables"],
+            "last_pipeline_run_status": schedule["last_pipeline_run_status"],
+            "next_pipeline_run_date": schedule["next_pipeline_run_date"],
+            "pipeline_in_progress_runs_count": schedule[
+                "pipeline_in_progress_runs_count"
+            ],
+            "pipeline_runs_count": schedule["pipeline_runs_count"],
+        }
+        for schedule in data_dict["pipeline_schedules"]
     ]
     return JSONResponse(
         content={
@@ -919,7 +907,10 @@ async def create_pipeline_schedules(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     new_record = PipelineSchedule(
-        name=data.name, pipeline_schedule_type=data.pipeline_schedule_type, pipeline_schedule_interval=data.pipeline_schedule_interval, pipeline_schedule_start_time=data.pipeline_schedule_start_time
+        name=data.name,
+        pipeline_schedule_type=data.pipeline_schedule_type,
+        pipeline_schedule_interval=data.pipeline_schedule_interval,
+        pipeline_schedule_start_time=data.pipeline_schedule_start_time,
     )
     db.add(new_record)
     db.commit()
@@ -927,10 +918,10 @@ async def create_pipeline_schedules(
     settings = data.settings
     description = data.description
 
-
     pipeline_schedule = {
         "pipeline_schedule": {
-            "name": "schedule_"+ unidecode(new_record.name.replace(" ", "_"))
+            "name": "schedule_"
+            + unidecode(new_record.name.replace(" ", "_"))
             + "_"
             + str(new_record.id),
             "id": str(new_record.id),
@@ -955,9 +946,7 @@ async def create_pipeline_schedules(
                 "updated_at": data_dict["pipeline_schedule"]["updated_at"],
                 "description": data_dict["pipeline_schedule"]["description"],
                 "settings": data_dict["pipeline_schedule"]["settings"],
-                "last_enabled_at": data_dict["pipeline_schedule"][
-                    "last_enabled_at"
-                ],
+                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
                 "schedule_interval": data_dict["pipeline_schedule"][
                     "schedule_interval"
                 ],
@@ -967,7 +956,7 @@ async def create_pipeline_schedules(
                 "token": data_dict["pipeline_schedule"]["token"],
                 # "variables": data_dict["pipeline_schedule"]["variables"],
             }
-            ]
+        ]
         return JSONResponse(
             content={
                 "data": extracted_data,
@@ -1015,7 +1004,9 @@ async def update_pipeline_schedules(
         )
 
     exist_schedule = (
-        db.query(PipelineSchedule).filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-")).first()
+        db.query(PipelineSchedule)
+        .filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-"))
+        .first()
     )
     if not exist_schedule:
         return JSONResponse(
@@ -1024,7 +1015,10 @@ async def update_pipeline_schedules(
         )
     if exist_schedule.pipeline_id != exist_pipeline.id:
         return JSONResponse(
-            content={"data": [], "message": "Bạn không có quyền truy cập pipeline schedule này"},
+            content={
+                "data": [],
+                "message": "Bạn không có quyền truy cập pipeline schedule này",
+            },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     settings = data.settings
@@ -1046,14 +1040,17 @@ async def update_pipeline_schedules(
     if data.description:
         updated_schedule["pipeline_schedule"]["description"] = data.description
     if data.schedule_interval:
-        updated_schedule["pipeline_schedule"]["schedule_interval"] = data.schedule_interval
+        updated_schedule["pipeline_schedule"][
+            "schedule_interval"
+        ] = data.schedule_interval
     if data.start_time:
         updated_schedule["pipeline_schedule"]["start_time"] = data.start_time
     if data.status:
         updated_schedule["pipeline_schedule"]["status"] = data.status
     if data.name:
         updated_schedule["pipeline_schedule"]["name"] = (
-            "schedule_"+ unidecode(data.name.replace(" ", "_"))
+            "schedule_"
+            + unidecode(data.name.replace(" ", "_"))
             + "_"
             + str(exist_schedule.id)
         )
@@ -1064,39 +1061,37 @@ async def update_pipeline_schedules(
     data_dict = response.json()
     if "error" not in data_dict:
         extracted_data = [
-                {
-                    "name": exist_schedule.name,
-                    "created_at": data_dict["pipeline_schedule"]["created_at"],
-                    "updated_at": data_dict["pipeline_schedule"]["updated_at"],
-                    "description": data_dict["pipeline_schedule"]["description"],
-                    "settings": data_dict["pipeline_schedule"]["settings"],
-                    # "tags": data_dict["pipeline_schedule"]["tags"],
-                    "id": data_dict["pipeline_schedule"]["id"],
-                    "last_enabled_at": data_dict["pipeline_schedule"][
-                        "last_enabled_at"
-                    ],
-                    "schedule_interval": data_dict["pipeline_schedule"][
-                        "schedule_interval"
-                    ],
-                    "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
-                    "start_time": data_dict["pipeline_schedule"]["start_time"],
-                    "status": data_dict["pipeline_schedule"]["status"],
-                    "token": data_dict["pipeline_schedule"]["token"],
-                    # "variables": data_dict["pipeline_schedule"]["variables"],
-                    "last_pipeline_run_status": data_dict["pipeline_schedule"][
-                        "last_pipeline_run_status"
-                    ],
-                    "next_pipeline_run_date": data_dict["pipeline_schedule"][
-                        "next_pipeline_run_date"
-                    ],
-                    "pipeline_in_progress_runs_count": data_dict["pipeline_schedule"][
-                        "pipeline_in_progress_runs_count"
-                    ],
-                    "pipeline_runs_count": data_dict["pipeline_schedule"][
-                        "pipeline_runs_count"
-                    ],
-                }
-            ]
+            {
+                "name": exist_schedule.name,
+                "created_at": data_dict["pipeline_schedule"]["created_at"],
+                "updated_at": data_dict["pipeline_schedule"]["updated_at"],
+                "description": data_dict["pipeline_schedule"]["description"],
+                "settings": data_dict["pipeline_schedule"]["settings"],
+                # "tags": data_dict["pipeline_schedule"]["tags"],
+                "id": data_dict["pipeline_schedule"]["id"],
+                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
+                "schedule_interval": data_dict["pipeline_schedule"][
+                    "schedule_interval"
+                ],
+                "schedule_type": data_dict["pipeline_schedule"]["schedule_type"],
+                "start_time": data_dict["pipeline_schedule"]["start_time"],
+                "status": data_dict["pipeline_schedule"]["status"],
+                "token": data_dict["pipeline_schedule"]["token"],
+                # "variables": data_dict["pipeline_schedule"]["variables"],
+                "last_pipeline_run_status": data_dict["pipeline_schedule"][
+                    "last_pipeline_run_status"
+                ],
+                "next_pipeline_run_date": data_dict["pipeline_schedule"][
+                    "next_pipeline_run_date"
+                ],
+                "pipeline_in_progress_runs_count": data_dict["pipeline_schedule"][
+                    "pipeline_in_progress_runs_count"
+                ],
+                "pipeline_runs_count": data_dict["pipeline_schedule"][
+                    "pipeline_runs_count"
+                ],
+            }
+        ]
         return JSONResponse(
             content={
                 "data": extracted_data,
@@ -1112,7 +1107,7 @@ async def update_pipeline_schedules(
             content={
                 "data": extracted_data,
                 "detail": detail,
-                "message": "Sửa schedule thất bại"
+                "message": "Sửa schedule thất bại",
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -1140,7 +1135,9 @@ async def delete_one_pipeline_schedules(
         )
 
     exist_schedule = (
-        db.query(PipelineSchedule).filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-")).first()
+        db.query(PipelineSchedule)
+        .filter(PipelineSchedule.id == pipeline_schedules_uuid.replace("_", "-"))
+        .first()
     )
     if not exist_schedule:
         return JSONResponse(
@@ -1149,10 +1146,13 @@ async def delete_one_pipeline_schedules(
         )
     if exist_schedule.pipeline_id != exist_pipeline.id:
         return JSONResponse(
-            content={"data": [], "message": "Bạn không có quyền truy cập pipeline schedule này"},
+            content={
+                "data": [],
+                "message": "Bạn không có quyền truy cập pipeline schedule này",
+            },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    
+
     url = f"http://{MAGE_HOST}:{MAGE_PORT}/api/pipelines/{uuid}/pipeline_schedules/{pipeline_schedules_uuid}"
     headers = {"x_api_key": MAGE_API_KEY}
     response = requests.delete(url, headers=headers)
@@ -1166,9 +1166,7 @@ async def delete_one_pipeline_schedules(
                 "description": data_dict["pipeline_schedule"]["description"],
                 "settings": data_dict["pipeline_schedule"]["settings"],
                 "id": data_dict["pipeline_schedule"]["id"],
-                "last_enabled_at": data_dict["pipeline_schedule"][
-                    "last_enabled_at"
-                ],
+                "last_enabled_at": data_dict["pipeline_schedule"]["last_enabled_at"],
                 "schedule_interval": data_dict["pipeline_schedule"][
                     "schedule_interval"
                 ],
@@ -1178,7 +1176,7 @@ async def delete_one_pipeline_schedules(
                 "token": data_dict["pipeline_schedule"]["token"],
                 # "variables": data_dict["pipeline_schedule"]["variables"],
             }
-            ]
+        ]
         return JSONResponse(
             content={
                 "data": extracted_data,

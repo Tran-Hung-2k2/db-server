@@ -150,10 +150,12 @@ def delete_one_statement(session_id, statement_id):
         response.raise_for_status()
 
 
-def query_sql_from_delta(user_id, dataset_ids: list, query):
-    idle_session = get_all_idle_sessions()[0]
+def query_sql_from_delta(user_id, dataset_ids:list, query):
+    idle_session= get_all_idle_session_()[0]
+    if not idle_session:
+        idle_session = create_new_session("test")["id"]
     for dataset_id in dataset_ids:
         query = query.replace(dataset_id, f"delta.`s3a://{user_id}/{dataset_id}")
     query = f"spark.sql({query}).toJSON().collect()"
     response = execute_statement(idle_session, query)
-    return response
+    return response 

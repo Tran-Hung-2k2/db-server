@@ -49,6 +49,9 @@ endif
 magesrv:
 	$(PYTHON) services_python/mage_service/app/main.py
 
+sparksrv:
+	$(PYTHON) services_python/spark_service/app/main.py
+
 setsrv:
 	$(PYTHON) services_python/datasets_service/app/main.py
 
@@ -67,3 +70,5 @@ usersrv:
 clientsrv: 
 	cd client && npm run dev
 
+mlsrv:
+	$(PYTHON) services_python/ml_service/app/main.py

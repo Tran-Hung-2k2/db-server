@@ -77,16 +77,18 @@ def register_model(run_id):
     mv = mlflow.register_model(
         model_uri=f"runs:/{run_id}/model", 
         name=register_name,
-        tags={"task":"{{ task }}"}
     )
     # Add alias for this model (@champion)
-    mlflow.MlflowClient().set_registered_model_alias(register_name, 'champion', mv.version)
+    # mlflow.MlflowClient().set_registered_model_alias(register_name, 'champion', mv.version)
+    print(f"Model version: {mv.version}")
+    return mv.version
     
 @task
-def commit_run(run_name, run_id):
+def commit_run(run_name, run_id, model_version):
     conn = psycopg2.connect(**conn_params)
     cursor = conn.cursor()
     cursor.execute(f"UPDATE runs SET run_id = '{run_id}' WHERE id = '{run_name}'")
+    cursor.execute(f"INSERT INTO models (project_id,run_id,version) VALUES ('{{ name }}','{run_name}',{model_version})")
     conn.commit()
     cursor.close()
     conn.close()
@@ -95,8 +97,8 @@ def commit_run(run_name, run_id):
 def {{ flow }}(run_name: str):
     X_train, y_train, X_test, y_test, _ = load_data(test_size=20)
     run_id = train_model(run_name, X_train, y_train, X_test, y_test)
-    register_model(run_id)
-    commit_run(run_name, run_id)
+    model_version = register_model(run_id)
+    commit_run(run_name, run_id, model_version)
     
 if __name__ == "__main__":
     {{ flow }}()

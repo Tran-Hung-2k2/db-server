@@ -1,4 +1,4 @@
-data = [
+SKLEARN_CONFIG = [
     {
         "task": "Classification",
         "models": [
