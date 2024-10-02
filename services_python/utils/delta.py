@@ -222,8 +222,8 @@ def delete_folder_from_s3(user_id: str, dataset_id: str):
         # Initialize Minio client
         minio_client = Minio(
             endpoint_url_parts.netloc,
-            access_key="Crl6bcvsiKQKqh9IuDDy",
-            secret_key="NCpGrwkQHeRFClrwe4vpDpciappmCSElJoOKsqaK",
+            access_key=MINIO_ACCESS_KEY_ID,
+            secret_key=MINIO_SECRET_ACCESS_KEY,
             secure=False,
         )
 

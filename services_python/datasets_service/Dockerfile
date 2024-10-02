@@ -6,6 +6,9 @@ WORKDIR /app
 # Sao chép toàn bộ nội dung của dự án vào thư mục làm việc
 COPY services_python ./services_python
 
+# Tạo thư mục temp trong thư mục làm việc
+RUN mkdir -p /app/temp
+
 # RUN apt-get update \
     # && apt-get install gcc -y \
     # && apt-get clean

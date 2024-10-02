@@ -9,6 +9,7 @@ import Loader from '@components/Loader';
 import ButtonBack from '@components/ButtonBack';
 
 import api from '@/api/datasets';
+import apiDataMart from '@/api/data_marts';
 
 import convertTime from '@/utils/convertTime';
 
@@ -33,7 +34,7 @@ export default function Page() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await api.getDataset({
+            const res = await apiDataMart.getDataMart({
                 id: id,
             });
             setDataset(res.data[0]);
@@ -67,11 +68,11 @@ export default function Page() {
             <div className="flex-grow px-8 py-2max-w-screen">
                 <ButtonBack className="my-2" />
                 {/* Title */}
-                <h3 className="pb-4 text-xl font-bold text-neutral">Thông tin chi tiết tập dữ liệu</h3>
+                <h3 className="pb-4 text-xl font-bold text-neutral">Thông tin chi tiết kho dữ liệu</h3>
                 {dataset && (
                     <div className="flex flex-col gap-2 mb-4">
                         <p>
-                            <span className="font-semibold">Tên dataset:</span> {dataset.name}
+                            <span className="font-semibold">Tên kho dữ liệu:</span> {dataset.name}
                         </p>
                         <p>
                             <span className="font-semibold">Đường dẫn:</span> {'s3://' + user.id + '/' + dataset.id}

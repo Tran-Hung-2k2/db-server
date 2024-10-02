@@ -17,7 +17,7 @@ const fields = [
         name: 'file',
         type: 'file',
         accept: '.csv, .zip',
-        required: true,
+        // required: true,
     },
 ];
 

@@ -20,6 +20,7 @@ import confirm from '@/utils/confirm';
 import recordPerPage from '@/constants/record_per_page';
 import Pagination from '@/components/Pagination';
 import { ToastContainer } from 'react-toastify';
+import { NavLink } from 'react-router-dom';
 
 export default function Page() {
     const [loading, setLoading] = useState(false);
@@ -189,9 +190,12 @@ export default function Page() {
                                             </div>
                                         </td>
                                         <td className="py-2">
-                                            <div>
-                                                <div className="text-base font-semibold">{data?.name}</div>
-                                            </div>
+                                            <NavLink
+                                                to={`/datamarts/manage/detail/${data?.id}`}
+                                                className="text-base font-semibold"
+                                            >
+                                                {data?.name}
+                                            </NavLink>
                                         </td>
                                         <td className="py-2 text-justify min-w-60">{data?.description}</td>
                                         <td className="py-2 font-mono">{convertTime(data?.created_at)}</td>

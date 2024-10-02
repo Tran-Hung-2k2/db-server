@@ -3,11 +3,13 @@
 # Define an array with Docker Compose file names and corresponding image names
 compose_files=(
 # "compose-file-name:image-name"
-  # "docker-compose-nginx.yml:db-server-nginx"
-  "docker-compose-notebooks.yml:db-server-notebooks"
+  "docker-compose-nginx.yml:db-server-nginx"
+  # "docker-compose-notebooks.yml:db-server-notebooks"
   # "docker-compose-auth.yml:db-server-auth"
   # "docker-compose-channels.yml:db-server-channels"
+  # "docker-compose-datasets.yml:db-server-datasets"
   # "docker-compose-datamarts.yml:db-server-data_marts"
+  # "docker-compose-users.yml:db-server-users"
 )
 
 # Create directory to store Docker images

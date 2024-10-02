@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  kafka_producer:
+    image: producer_kafka-kafka_producer:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - BOOTSTRAP_SERVERS=host.docker.internal:9092
+      - TOPIC=test
+      - INTERVAL=0.1
+    networks:
+      - main
+networks:
+  main:
+    driver: bridge

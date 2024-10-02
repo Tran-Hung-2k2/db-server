@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  users:
+    build:
+      context: .
+      dockerfile: services_go/cmd/users/Dockerfile
+    ports:
+      - "8082:8080"
+    volumes:
+      - /root/db-server:/usr/src/app/
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - main
+
+networks:
+  main:
+    name: main
+    driver: bridge

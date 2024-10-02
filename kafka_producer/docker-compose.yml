@@ -1,0 +1,7 @@
+version: '3.8'
+
+services:
+  kafka_producer:
+    build:
+      context: .
+      dockerfile: Dockerfile

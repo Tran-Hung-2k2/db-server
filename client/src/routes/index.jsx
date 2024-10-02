@@ -13,6 +13,7 @@ const ChannelManage = lazy(() => import('@pages/ChannelManage'));
 const DataMartManage = lazy(() => import('@pages/DataMartManage'));
 const DatasetManage = lazy(() => import('@/pages/DatasetManage'));
 const DatasetDetail = lazy(() => import('@/pages/DatasetDetail'));
+const DataMartDetail = lazy(() => import('@/pages/DataMartDetail'));
 const MLOpsManage = lazy(() => import('@pages/MLOpsManage'));
 const PipelineManage = lazy(() => import('@pages/PipelineManage'));
 const NotebookManage = lazy(() => import('@pages/NotebookManage'));
@@ -61,6 +62,10 @@ const routes = [
                     {
                         path: '/datasets/manage/detail/:id',
                         component: DatasetDetail,
+                    },
+                    {
+                        path: '/datamarts/manage/detail/:id',
+                        component: DataMartDetail,
                     },
                     {
                         path: '/pipelines/manage/edit/:id',
